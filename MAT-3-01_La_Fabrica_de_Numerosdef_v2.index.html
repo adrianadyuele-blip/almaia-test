@@ -1,0 +1,3151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Fábrica de Números · AlmaAI Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-deep: #0a1628;
+    --blue-mid: #0e2040;
+    --blue-line: #1a3a6e;
+    --blue-glow: #2a5fc4;
+    --gold: #f5c842;
+    --gold-dim: #b8922e;
+    --teal: #00c9b1;
+    --teal-dim: #007a6d;
+    --white: #e8f0ff;
+    --white-dim: #8fa3cc;
+    --red-err: #ff5c5c;
+    --green-ok: #4eff9e;
+    --purple: #9b6fff;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background-color: var(--blue-deep);
+    background-image:
+      linear-gradient(var(--blue-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--blue-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center center;
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── LAYOUT ─────────────────────────────── */
+  .app { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  /* ─── HEADER ─────────────────────────────── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    background: rgba(14,32,64,0.9);
+    border: 1px solid var(--blue-line);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--teal), var(--gold), var(--teal));
+  }
+  .header-brand {
+    display: flex; flex-direction: column;
+  }
+  .header-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--white-dim); text-transform: uppercase;
+  }
+  .header-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px; font-weight: 700;
+    color: var(--white);
+    letter-spacing: 1px;
+  }
+  .header-code {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px; color: var(--gold);
+    background: rgba(245,200,66,0.12);
+    border: 1px solid var(--gold-dim);
+    padding: 4px 10px; border-radius: 4px;
+    letter-spacing: 2px;
+  }
+  .header-actions { display: flex; gap: 8px; }
+  .btn-icon {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--blue-line);
+    border-radius: 8px;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 18px;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .btn-icon:hover { background: rgba(255,255,255,0.12); border-color: var(--teal); }
+  .btn-icon .tooltip {
+    position: absolute; bottom: -32px; left: 50%; transform: translateX(-50%);
+    background: var(--blue-mid); border: 1px solid var(--blue-line);
+    padding: 3px 8px; border-radius: 4px;
+    font-size: 11px; color: var(--white-dim); white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .btn-icon:hover .tooltip { opacity: 1; }
+
+  /* ─── PROGRESS BAR ───────────────────────── */
+  .progress-section {
+    background: rgba(14,32,64,0.8);
+    border: 1px solid var(--blue-line);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 18px;
+  }
+  .progress-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--white-dim); letter-spacing: 1px; text-transform: uppercase;
+  }
+  .progress-count { font-family: 'Orbitron', sans-serif; font-size: 13px; color: var(--gold); }
+
+  /* Barra con cohete y planeta */
+  .progress-track {
+    position: relative;
+    height: 28px;
+    display: flex; align-items: center;
+    margin: 4px 0 4px;
+  }
+  .progress-bar-bg {
+    flex: 1;
+    height: 8px; background: rgba(255,255,255,0.08);
+    border-radius: 4px; overflow: visible; position: relative;
+    margin: 0 14px;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--teal), var(--gold));
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    min-width: 0;
+  }
+  .progress-bar-fill::after {
+    content: '';
+    position: absolute; right: 0; top: 0; bottom: 0; width: 12px;
+    background: rgba(255,255,255,0.3);
+    filter: blur(4px);
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer { 0%,100% { opacity: 0.5 } 50% { opacity: 1 } }
+
+  /* Cohete que viaja */
+  .progress-rocket {
+    position: absolute;
+    font-size: 20px;
+    top: 50%; transform: translateY(-50%);
+    transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 0 6px rgba(0,201,177,0.7));
+    z-index: 5;
+    pointer-events: none;
+  }
+  /* Planeta meta a la derecha */
+  .progress-planet {
+    font-size: 24px;
+    flex-shrink: 0;
+    animation: planet-pulse 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px rgba(245,200,66,0.5));
+    transition: filter 0.5s;
+  }
+  .progress-planet.reached {
+    animation: planet-celebrate 0.6s ease forwards;
+    filter: drop-shadow(0 0 18px rgba(245,200,66,1));
+  }
+  @keyframes planet-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+  @keyframes planet-celebrate { 0% { transform: scale(1); } 50% { transform: scale(1.5) rotate(20deg); } 100% { transform: scale(1.2) rotate(0deg); } }
+
+  /* Puntos de reto en la barra */
+  .progress-dots {
+    display: flex; gap: 5px; margin-top: 8px; justify-content: center;
+  }
+  .progress-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    transition: all 0.3s;
+    position: relative;
+  }
+  .progress-dot.done { background: var(--teal); border-color: var(--teal); box-shadow: 0 0 5px rgba(0,201,177,0.5); }
+  .progress-dot.pending {
+    background: rgba(255,170,0,0.3);
+    border-color: #ffaa00;
+    animation: dot-pulse 1.5s ease-in-out infinite;
+  }
+  .progress-dot.pending::after {
+    content: '!';
+    position: absolute; top: -1px; left: 2px;
+    font-size: 8px; font-weight: 900; color: #ffaa00; line-height: 1;
+  }
+  @keyframes dot-pulse { 0%,100% { box-shadow: 0 0 4px rgba(255,170,0,0.4); } 50% { box-shadow: 0 0 10px rgba(255,170,0,0.9); } }
+
+  .levels-row { display: flex; gap: 8px; margin-top: 10px; }
+  .level-chip {
+    flex: 1; padding: 6px 10px; border-radius: 6px;
+    font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 600;
+    text-align: center; letter-spacing: 1px; text-transform: uppercase;
+    border: 1px solid transparent; cursor: default;
+    transition: all 0.3s;
+  }
+  .level-chip.locked { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); color: var(--white-dim); }
+  .level-chip.active { background: rgba(0,201,177,0.15); border-color: var(--teal); color: var(--teal); }
+  .level-chip.done { background: rgba(245,200,66,0.12); border-color: var(--gold-dim); color: var(--gold); }
+
+  /* ─── ALMA BUBBLE ────────────────────────── */
+  .alma-bubble {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: rgba(14,32,64,0.9);
+    border: 1px solid var(--blue-glow);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 18px;
+    position: relative;
+    animation: fadeSlideIn 0.5s ease;
+  }
+  .alma-bubble::before {
+    content: '';
+    position: absolute; inset: 0; border-radius: var(--radius);
+    background: radial-gradient(ellipse at top left, rgba(42,95,196,0.15), transparent 60%);
+    pointer-events: none;
+  }
+  /* ── ALMA AVATAR ────────────────────────── */
+  .alma-avatar {
+    width: 64px; height: 64px;
+    flex-shrink: 0;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .alma-avatar .av-halo {
+    position: absolute; inset: -8px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,201,177,0.18) 0%, transparent 70%);
+    animation: av-halo-breathe 4s ease-in-out infinite;
+  }
+  .alma-avatar .av-orbit {
+    position: absolute; border-radius: 50%;
+    border: 1px solid rgba(0,201,177,0.35);
+    animation: av-orbit-spin 6s linear infinite;
+  }
+  .alma-avatar .av-orbit-1 { width: 72px; height: 72px; top: -4px; left: -4px; }
+  .alma-avatar .av-orbit-2 { width: 82px; height: 82px; top: -9px; left: -9px; border-color: rgba(100,80,255,0.22); animation-duration: 9s; animation-direction: reverse; }
+  .alma-avatar .av-dot {
+    position: absolute; border-radius: 50%;
+    top: -4px; left: calc(50% - 4px);
+  }
+  .alma-avatar .av-dot-t { width: 8px; height: 8px; background: #00e5cc; box-shadow: 0 0 6px #00c9b1; }
+  .alma-avatar .av-dot-p { width: 6px; height: 6px; background: #9b6fff; box-shadow: 0 0 5px #7b40ff; top: -3px; left: calc(50% - 3px); }
+  .alma-avatar .av-shell {
+    position: absolute; width: 56px; height: 56px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 60%, rgba(0,30,60,0.85), rgba(5,10,30,0.95));
+    border: 1.5px solid rgba(0,200,177,0.4);
+    box-shadow: 0 0 14px rgba(0,201,177,0.45), 0 0 32px rgba(0,120,255,0.2), inset 0 0 18px rgba(0,0,40,0.55);
+    overflow: hidden;
+    animation: av-sphere-pulse 3.5s ease-in-out infinite;
+    z-index: 2;
+  }
+  .alma-avatar .av-shell::after {
+    content: '';
+    position: absolute; top: 8%; left: 14%; width: 34%; height: 22%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.42) 0%, transparent 70%);
+    transform: rotate(-25deg);
+  }
+  .alma-avatar .av-flame {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 30px; height: 42px; border-radius: 50% 50% 40% 40%;
+    background: linear-gradient(to top, #00e5cc, #00a8ff, #7060ff, #9b40ff);
+    animation: av-flame-dance 2s ease-in-out infinite;
+    z-index: 3; overflow: hidden;
+  }
+  .alma-avatar .av-flame::before {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 28px; border-radius: 50% 50% 40% 40%;
+    background: linear-gradient(to top, rgba(255,255,255,0.45), #00e5cc, transparent);
+    animation: av-flame-dance 1.5s ease-in-out infinite reverse;
+  }
+  .alma-avatar .av-eye {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    background: white; box-shadow: 0 0 4px white; z-index: 5;
+    bottom: 30px; animation: av-eye-blink 5s ease-in-out infinite;
+  }
+  .alma-avatar .av-eye::before {
+    content: ''; position: absolute; width: 3px; height: 3px;
+    border-radius: 50%; background: #001a3a; top: 1px; left: 1px;
+  }
+  .alma-avatar .av-el { left: 17px; }
+  .alma-avatar .av-er { right: 17px; }
+  .alma-avatar .av-mouth {
+    position: absolute; z-index: 5;
+    width: 10px; height: 4px;
+    border: 1.5px solid rgba(255,255,255,0.85);
+    border-top: none; border-radius: 0 0 5px 5px;
+    bottom: 23px; left: 50%; transform: translateX(-50%);
+  }
+
+  @keyframes av-halo-breathe { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+  @keyframes av-orbit-spin { to { transform: rotate(360deg); } }
+  @keyframes av-sphere-pulse {
+    0%,100% { box-shadow: 0 0 14px rgba(0,201,177,0.45), 0 0 32px rgba(0,120,255,0.2), inset 0 0 18px rgba(0,0,40,0.55); }
+    50% { box-shadow: 0 0 22px rgba(0,201,177,0.6), 0 0 46px rgba(0,120,255,0.3), inset 0 0 18px rgba(0,0,40,0.55); }
+  }
+  @keyframes av-flame-dance { 0%,100% { transform: translateX(-50%) scaleX(1); } 50% { transform: translateX(-50%) scaleX(0.91); } }
+  @keyframes av-eye-blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(0.08); } }
+  .alma-name {
+    font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 600;
+    color: var(--teal); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .alma-text {
+    font-size: 15px; line-height: 1.6; color: var(--white);
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── RETO CARD ──────────────────────────── */
+  .reto-card {
+    background: rgba(14,32,64,0.85);
+    border: 1px solid var(--blue-line);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .reto-card::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--level-color, var(--teal));
+  }
+  .reto-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .reto-badge {
+    font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--level-color, var(--teal));
+    color: var(--level-color, var(--teal));
+  }
+  .reto-num {
+    font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900;
+    color: rgba(255,255,255,0.06);
+    line-height: 1;
+  }
+  .reto-question {
+    font-size: 17px; font-weight: 700; line-height: 1.5;
+    color: var(--white); margin-bottom: 20px;
+  }
+  .reto-sublabel {
+    font-size: 13px; color: var(--white-dim); margin-bottom: 12px;
+    font-family: 'Rajdhani', sans-serif; letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* ─── OPCIONES ───────────────────────────── */
+  .options-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 16px;
+  }
+  .option-btn {
+    background: rgba(255,255,255,0.04);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 700;
+    color: var(--white);
+    cursor: pointer; text-align: center;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .option-btn:hover:not(:disabled) {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--teal);
+    transform: translateY(-2px);
+  }
+  .option-btn.correct {
+    background: rgba(78,255,158,0.12);
+    border-color: var(--green-ok);
+    color: var(--green-ok);
+    animation: pulse-ok 0.4s ease;
+  }
+  .option-btn.wrong {
+    background: rgba(255,92,92,0.1);
+    border-color: var(--red-err);
+    color: var(--red-err);
+    animation: shake 0.4s ease;
+  }
+  @keyframes pulse-ok { 0%,100% { transform: scale(1) } 50% { transform: scale(1.04) } }
+  @keyframes shake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
+
+  /* ─── INPUT TEXT ─────────────────────────── */
+  .input-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .text-input {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 2px solid var(--blue-line);
+    border-radius: 10px;
+    padding: 13px 16px;
+    font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 700;
+    color: var(--white); outline: none;
+    transition: border-color 0.2s;
+  }
+  .text-input:focus { border-color: var(--teal); }
+  .text-input.correct { border-color: var(--green-ok); }
+  .text-input.wrong { border-color: var(--red-err); animation: shake 0.4s ease; }
+  .btn-confirm {
+    background: linear-gradient(135deg, var(--teal-dim), var(--teal));
+    border: none; border-radius: 10px;
+    padding: 13px 22px;
+    font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--blue-deep); cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn-confirm:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,201,177,0.3); }
+
+  /* ─── FEEDBACK ───────────────────────────── */
+  .feedback-box {
+    border-radius: 10px; padding: 12px 16px;
+    font-size: 14px; font-weight: 700; line-height: 1.5;
+    display: none; margin-bottom: 12px;
+    animation: fadeSlideIn 0.3s ease;
+  }
+  .feedback-box.ok { background: rgba(78,255,158,0.1); border: 1px solid var(--green-ok); color: var(--green-ok); }
+  .feedback-box.err { background: rgba(255,92,92,0.1); border: 1px solid var(--red-err); color: var(--red-err); }
+  .feedback-box.show { display: block; }
+
+  /* ─── BTN NEXT ───────────────────────────── */
+  .btn-next {
+    display: none; width: 100%;
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    border: none; border-radius: 10px;
+    padding: 14px 0;
+    font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700;
+    color: var(--blue-deep); cursor: pointer; letter-spacing: 2px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245,200,66,0.3); }
+  .btn-next.show { display: block; animation: fadeSlideIn 0.3s ease; }
+
+  /* ─── UNLOCK SCREEN ──────────────────────── */
+  .unlock-screen {
+    display: none;
+    background: rgba(10,22,40,0.97);
+    border: 2px solid var(--gold);
+    border-radius: 20px;
+    padding: 40px 30px;
+    text-align: center;
+    margin-bottom: 20px;
+    animation: fadeSlideIn 0.5s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .unlock-screen::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center top, rgba(245,200,66,0.12), transparent 60%);
+    pointer-events: none;
+  }
+  .unlock-screen.show { display: block; }
+  .unlock-gear { font-size: 64px; animation: spin 2s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .unlock-title {
+    font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900;
+    color: var(--gold); margin: 16px 0 8px;
+    text-shadow: 0 0 20px rgba(245,200,66,0.5);
+    letter-spacing: 2px;
+  }
+  .unlock-subtitle { font-size: 15px; color: var(--white-dim); line-height: 1.6; margin-bottom: 24px; }
+  .btn-continue {
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    border: none; border-radius: 10px;
+    padding: 14px 36px;
+    font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700;
+    color: var(--blue-deep); cursor: pointer; letter-spacing: 2px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn-continue:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245,200,66,0.3); }
+
+  /* ─── CURIOSITY BOX ──────────────────────── */
+  .curiosity-box {
+    display: none;
+    background: rgba(155,111,255,0.08);
+    border: 1px solid var(--purple);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    animation: fadeSlideIn 0.4s ease;
+  }
+  .curiosity-box.show { display: block; }
+  .curiosity-header {
+    font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--purple); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .curiosity-text { font-size: 14px; line-height: 1.7; color: var(--white); }
+
+  /* ─── VICTORY SCREEN ─────────────────────── */
+  .victory-screen {
+    display: none;
+    text-align: center;
+    padding: 50px 30px;
+    animation: fadeSlideIn 0.6s ease;
+  }
+  .victory-screen.show { display: block; }
+  .victory-trophy { font-size: 80px; margin-bottom: 20px; animation: bounce 1s ease infinite alternate; }
+  @keyframes bounce { from { transform: translateY(0) } to { transform: translateY(-12px) } }
+  .victory-logro {
+    font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+    color: var(--teal); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .victory-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 36px; font-weight: 700;
+    color: var(--gold); margin-bottom: 12px;
+    text-shadow: 0 0 30px rgba(245,200,66,0.4);
+    letter-spacing: 1px;
+  }
+  .victory-subtitle { font-size: 15px; color: var(--white-dim); line-height: 1.7; max-width: 500px; margin: 0 auto 30px; }
+  .victory-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-share {
+    background: rgba(0,201,177,0.15); border: 1px solid var(--teal);
+    border-radius: 10px; padding: 12px 24px;
+    font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700;
+    color: var(--teal); cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn-share:hover { background: rgba(0,201,177,0.25); transform: translateY(-2px); }
+  .qr-placeholder {
+    width: 80px; height: 80px; margin: 0 auto 8px;
+    border: 2px solid var(--gold-dim); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; background: rgba(245,200,66,0.06);
+  }
+  .qr-label { font-size: 11px; color: var(--white-dim); letter-spacing: 1px; }
+
+  /* ─── MODAL DIAGNÓSTICO ──────────────────── */
+  .diagnostico-overlay {
+    display: none; position: fixed; inset: 0; z-index: 300;
+    background: rgba(5,12,25,0.94); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .diagnostico-overlay.show { display: flex; animation: fadeSlideIn 0.3s ease; }
+  .diagnostico-box {
+    background: var(--blue-mid);
+    border: 2px solid var(--teal);
+    border-radius: 20px; max-width: 540px; width: 100%;
+    padding: 32px; position: relative;
+  }
+  .diagnostico-eyebrow {
+    font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
+    color: var(--teal); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .diagnostico-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700;
+    color: var(--white); margin-bottom: 6px;
+  }
+  .diagnostico-intro {
+    font-size: 13px; color: var(--white-dim); line-height: 1.6; margin-bottom: 20px;
+  }
+  .diagnostico-question {
+    font-size: 16px; font-weight: 700; color: var(--white);
+    line-height: 1.5; margin-bottom: 16px;
+    background: rgba(0,201,177,0.06); border: 1px solid rgba(0,201,177,0.2);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .diagnostico-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .diagnostico-opt {
+    background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 13px 14px;
+    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
+    color: var(--white); cursor: pointer; text-align: center; transition: all 0.2s;
+  }
+  .diagnostico-opt:hover:not(:disabled) { background: rgba(0,201,177,0.08); border-color: var(--teal); }
+  .diagnostico-opt.correct { background: rgba(78,255,158,0.12); border-color: var(--green-ok); color: var(--green-ok); }
+  .diagnostico-opt.wrong   { background: rgba(255,92,92,0.10); border-color: var(--red-err); color: var(--red-err); animation: shake 0.4s ease; }
+  .diagnostico-feedback {
+    display: none; border-radius: 8px; padding: 10px 14px;
+    font-size: 13px; font-weight: 700; margin-bottom: 12px; line-height: 1.5;
+  }
+  .diagnostico-feedback.show { display: block; animation: fadeSlideIn 0.3s ease; }
+  .diagnostico-feedback.ok  { background: rgba(78,255,158,0.1); border: 1px solid var(--green-ok); color: var(--green-ok); }
+  .diagnostico-feedback.err { background: rgba(255,92,92,0.1); border: 1px solid var(--red-err); color: var(--red-err); }
+  .diagnostico-back {
+    background: none; border: 1px solid var(--white-dim); border-radius: 8px;
+    padding: 8px 18px; font-size: 12px; color: var(--white-dim); cursor: pointer;
+    font-family: 'Rajdhani', sans-serif; font-weight: 600; letter-spacing: 1px;
+    transition: all 0.2s; margin-top: 4px;
+  }
+  .diagnostico-back:hover { border-color: var(--white); color: var(--white); }
+
+  /* ─── MODAL HELP ─────────────────────────── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(5,12,25,0.92); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; animation: fadeSlideIn 0.3s ease; }
+  .modal-box {
+    background: var(--blue-mid);
+    border: 1px solid var(--blue-glow);
+    border-radius: 20px; max-width: 520px; width: 100%;
+    padding: 32px; position: relative;
+    max-height: 80vh; overflow-y: auto;
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; font-size: 22px; cursor: pointer;
+    color: var(--white-dim);
+  }
+  .modal-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700;
+    color: var(--teal); margin-bottom: 16px; letter-spacing: 1px;
+  }
+  .modal-body { font-size: 14px; line-height: 1.8; color: var(--white); }
+  .modal-body p { margin-bottom: 12px; }
+  .modal-body strong { color: var(--gold); }
+
+  /* ─── MODAL LOGRO ────────────────────────── */
+  .logro-card {
+    background: linear-gradient(135deg, var(--blue-mid), #0a1e40);
+    border: 2px solid var(--gold);
+    border-radius: 16px; padding: 28px;
+    text-align: center; position: relative; overflow: hidden;
+  }
+  .logro-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top, rgba(245,200,66,0.08), transparent 60%);
+    pointer-events: none;
+  }
+  .logro-code { font-family: 'Orbitron', sans-serif; font-size: 10px; color: var(--white-dim); letter-spacing: 3px; margin-bottom: 6px; }
+  .logro-icon { font-size: 48px; margin-bottom: 10px; }
+  .logro-name {
+    font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900;
+    color: var(--gold); margin-bottom: 6px;
+    text-shadow: 0 0 20px rgba(245,200,66,0.4);
+  }
+  .logro-course { font-size: 13px; color: var(--white-dim); margin-bottom: 20px; }
+  .logro-stars { font-size: 28px; letter-spacing: 4px; margin-bottom: 6px; }
+
+  /* ─── ALMA HINT (pista de error) ────────── */
+  .alma-hint {
+    display: none;
+    background: rgba(245,200,66,0.08);
+    border: 1px solid var(--gold-dim);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 8px; margin-bottom: 4px;
+    font-size: 13px; line-height: 1.6;
+    color: var(--gold);
+    animation: fadeSlideIn 0.3s ease;
+  }
+  .alma-hint.show { display: block; }
+  .alma-hint-label {
+    font-family: 'Rajdhani', sans-serif; font-size: 10px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 4px;
+  }
+
+  /* ─── REPASO FINAL ───────────────────────── */
+  .repaso-banner {
+    display: none;
+    background: rgba(255,170,0,0.08);
+    border: 1px solid #ffaa00;
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    text-align: center;
+    animation: fadeSlideIn 0.4s ease;
+  }
+  .repaso-banner.show { display: block; }
+  .repaso-banner-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700;
+    color: #ffaa00; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .repaso-banner-sub { font-size: 12px; color: var(--white-dim); }
+
+  /* ─── CURIOSIDAD DE NIVEL ────────────────── */
+  .nivel-curiosidad {
+    display: none;
+    background: rgba(10,22,40,0.97);
+    border: 2px solid var(--teal);
+    border-radius: 20px;
+    padding: 36px 28px;
+    text-align: center;
+    margin-bottom: 20px;
+    animation: fadeSlideIn 0.5s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .nivel-curiosidad::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center top, rgba(0,201,177,0.10), transparent 60%);
+    pointer-events: none;
+  }
+  .nivel-curiosidad.show { display: block; }
+  .nivel-curiosidad-eyebrow {
+    font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
+    color: var(--teal); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 14px;
+  }
+  .nivel-curiosidad-emoji { font-size: 52px; margin-bottom: 14px; display: block; animation: bounce 1s ease infinite alternate; }
+  .nivel-curiosidad-text {
+    font-size: 16px; line-height: 1.8; color: var(--white);
+    max-width: 520px; margin: 0 auto 24px;
+  }
+  .nivel-curiosidad-text strong { color: var(--teal); }
+  .btn-nivel-curiosidad {
+    background: linear-gradient(135deg, var(--teal-dim), var(--teal));
+    border: none; border-radius: 10px;
+    padding: 13px 32px;
+    font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--blue-deep); cursor: pointer; letter-spacing: 2px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn-nivel-curiosidad:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,201,177,0.35); }
+
+  /* ─── ACCESO RAPIDO ──────────────────────── */
+  .acceso-rapido {
+    background: rgba(155,111,255,0.08);
+    border: 1px dashed var(--purple);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+  .acceso-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--purple); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .acceso-text { font-size: 14px; color: var(--white-dim); margin-bottom: 14px; }
+  .acceso-btns { display: flex; gap: 8px; justify-content: center; }
+  .btn-acceso {
+    background: rgba(155,111,255,0.15); border: 1px solid var(--purple);
+    border-radius: 8px; padding: 8px 18px;
+    font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--purple); cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn-acceso:hover { background: rgba(155,111,255,0.25); }
+  .btn-acceso.no { border-color: var(--white-dim); color: var(--white-dim); background: transparent; }
+  .btn-acceso.no:hover { background: rgba(255,255,255,0.06); }
+
+  /* ─── VOICE INDICATOR ────────────────────── */
+  .voice-indicator {
+    display: none; align-items: center; gap: 8px;
+    background: rgba(0,201,177,0.1); border: 1px solid var(--teal);
+    border-radius: 8px; padding: 8px 14px; margin-bottom: 10px;
+    font-size: 13px; color: var(--teal);
+    font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
+  }
+  .voice-indicator.show { display: flex; animation: fadeSlideIn 0.3s ease; }
+  .voice-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); animation: pulse-dot 1s infinite; }
+  @keyframes pulse-dot { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
+
+  /* ─── STARS PARTICLE ─────────────────────── */
+  .stars-container { position: fixed; inset: 0; pointer-events: none; z-index: 200; overflow: hidden; }
+  .star-particle {
+    position: absolute; font-size: 20px;
+    animation: star-fly 1.5s ease-out forwards;
+  }
+  @keyframes star-fly {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-120px) scale(0.5); }
+  }
+
+  /* ─── RESPONSIVE ─────────────────────────── */
+  @media (max-width: 600px) {
+    .options-grid { grid-template-columns: 1fr; }
+    .header-title { font-size: 18px; }
+    .victory-actions { flex-direction: column; align-items: center; }
+    .acceso-btns { flex-direction: column; align-items: center; }
+  }
+
+  /* ── CONFETTI ─────────────────────────────────────── */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 10px;
+    top: -10px;
+    border-radius: 2px;
+    animation: confetti-fall linear forwards;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  @keyframes confetti-fall {
+    0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+    80%  { opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg) scale(0.5); opacity: 0; }
+  }
+
+  /* ─── AVISO MICRÓFONO ───────────────────────── */
+  .aviso-micro {
+    display: none;
+    background: rgba(255,92,92,0.12);
+    border: 1px solid var(--red-err);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--white);
+  }
+  .aviso-micro.show { display: block; animation: fadeSlideIn 0.4s ease; }
+  .aviso-micro strong { color: var(--red-err); }
+  .aviso-micro code {
+    background: rgba(255,255,255,0.1);
+    padding: 2px 8px; border-radius: 4px;
+    font-family: monospace; font-size: 13px; color: var(--gold);
+  }
+
+  /* ─── BOTÓN GRANDE ACTIVAR VOZ (acompañante) ───── */
+  .btn-activar-voz-grande {
+    display: block;
+    width: 100%;
+    padding: 22px 20px;
+    margin-bottom: 18px;
+    background: var(--teal);
+    color: var(--blue-deep);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 3px solid var(--teal);
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: center;
+    box-shadow: 0 0 24px rgba(0,201,177,0.5);
+    animation: pulse-voz 2s ease-in-out infinite;
+    transition: all 0.2s;
+  }
+  .btn-activar-voz-grande:hover { background: #00e5cc; box-shadow: 0 0 36px rgba(0,201,177,0.8); }
+  @keyframes pulse-voz { 0%,100% { box-shadow: 0 0 24px rgba(0,201,177,0.5); } 50% { box-shadow: 0 0 40px rgba(0,201,177,0.9); } }
+
+  .btn-restart-header {
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: var(--white-dim);
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-restart-header:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(255,255,255,0.05);
+  }
+  .confirm-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2000;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .confirm-overlay.show { opacity: 1; pointer-events: all; }
+  .confirm-box {
+    background: var(--blue-mid);
+    border: 1px solid var(--blue-line);
+    border-radius: 16px;
+    padding: 28px 32px;
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+  }
+  .confirm-title {
+    font-size: 16px; font-weight: 700;
+    color: var(--white); margin-bottom: 10px;
+  }
+  .confirm-body {
+    font-size: 13px; color: var(--white-dim);
+    margin-bottom: 22px; line-height: 1.5;
+  }
+  .confirm-btns {
+    display: flex; gap: 12px; justify-content: center;
+  }
+  .confirm-btns button {
+    padding: 10px 22px; border-radius: 10px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.2s;
+  }
+  .btn-confirm-yes {
+    background: var(--gold); color: var(--blue-deep);
+  }
+  .btn-confirm-yes:hover { opacity: 0.85; }
+  .btn-confirm-no {
+    background: transparent;
+    border: 1px solid var(--white-dim) !important;
+    color: var(--white-dim);
+  }
+  .btn-confirm-no:hover { border-color: var(--white) !important; color: var(--white); }
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link" style="position:absolute;top:-40px;left:0;background:var(--gold);color:var(--blue-deep);padding:8px 16px;z-index:9999;border-radius:0 0 8px 0;font-weight:700;transition:top 0.2s;" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Saltar al contenido principal</a>
+
+
+<div class="stars-container" id="starsContainer"></div>
+
+<!-- MODAL DIAGNÓSTICO ACCESO RÁPIDO -->
+<div class="diagnostico-overlay" id="diagnosticoOverlay">
+  <div class="diagnostico-box">
+    <div class="diagnostico-eyebrow">⚡ Prueba de acceso — AACC</div>
+    <div class="diagnostico-title" id="diagTitle">¿Listo para Órbita?</div>
+    <div class="diagnostico-intro" id="diagIntro">Para saltar directamente a este nivel, responde una pregunta de muestra. Si la aciertas, ¡adelante!</div>
+    <div class="diagnostico-question" id="diagQuestion"></div>
+    <div class="diagnostico-options" id="diagOptions"></div>
+    <div class="diagnostico-feedback" id="diagFeedback"></div>
+    <button class="diagnostico-back" onclick="cerrarDiagnostico()">← Volver al inicio</button>
+  </div>
+</div>
+
+<!-- MODAL AYUDA -->
+
+<!-- Confirmación reinicio -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">¿Empezar de nuevo?</div>
+    <div class="confirm-body">Volverás al Despegue y comenzarás con preguntas nuevas. ¡Se perderá el progreso actual!</div>
+    <div class="confirm-btns">
+      <button class="btn-confirm-yes" onclick="confirmRestart()">Sí, reiniciar</button>
+      <button class="btn-confirm-no" onclick="cancelRestart()">Cancelar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalHelp">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modalHelp')">✕</button>
+    <div class="modal-title">🔧 ¿Cómo funciona la Fábrica?</div>
+    <div class="modal-body">
+      <p>🌌 Alma recibió una señal del universo. Para descifrarla necesita entender los números que la forman. <strong>Este es el Fragmento 1 de la misión de 3º.</strong></p>
+      <p>¡Bienvenida o bienvenido! En <strong>La Fábrica de Números</strong> vas a aprender todo sobre los números hasta 9.999.</p>
+      <p><strong>¿Cómo se juega?</strong><br>Tienes 9 retos divididos en tres fases:</p>
+      <p>🚀 <strong>Despegue</strong> (Retos 1-3): Empezamos con lo básico. Leer, escribir y ordenar números.</p>
+      <p>🌙 <strong>Órbita</strong> (Retos 4-6): Vamos más dentro. Componemos y descomponemos números.</p>
+      <p>🌟 <strong>Galaxia</strong> (Retos 7-9): Desafíos que sorprenden hasta a los matemáticos. ¡A por ello!</p>
+      <p>Al terminar cada reto, <strong>Alma te contará una curiosidad increíble</strong> relacionada con los números. ¡No te las pierdas!</p>
+      <p>Cuando termines todos los retos, conseguirás tu logro: <strong>Ingeniera de Números</strong>.</p>
+      <p>Si ya sabes mucho de números grandes, pregúntale a Alma si puedes <strong>saltar directamente a Órbita o Galaxia</strong>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LOGRO (compartir) -->
+<div class="modal-overlay" id="modalLogro">
+  <div class="modal-box" style="max-width: 420px;">
+    <button class="modal-close" onclick="closeModal('modalLogro')">✕</button>
+    <div class="logro-card">
+      <div class="logro-code">ALMAAI LAB · MAT-3-01</div>
+      <div class="logro-icon">⚙️</div>
+      <div class="logro-name">Ingeniera de Números</div>
+      <div class="logro-course">Matemáticas · 3º de Primaria</div>
+      <div class="logro-stars" id="logroStars">⭐⭐⭐</div>
+      <div style="font-size: 13px; color: var(--white-dim); margin-top: 6px;">La Fábrica de Números completada</div>
+      <div style="margin-top: 10px; font-size: 11px; color: var(--gold); letter-spacing: 2px; font-family: 'Orbitron', sans-serif;">✦ FRAGMENTO 1 · MAT-3-01 ✦</div>
+      <div style="font-size: 11px; color: var(--white-dim); margin-top: 4px;">Señal del Universo · 1 de 9 misiones completadas</div>
+      <div style="margin-top: 12px; font-size: 11px; color: var(--gold-dim); letter-spacing: 1px;">@almaia_labs</div>
+    </div>
+    <button class="btn-confirm" style="width: 100%; margin-top: 16px; padding: 14px;" onclick="shareLogro()">
+      📸 Guardar imagen del logro
+    </button>
+    <div style="font-size: 12px; color: var(--white-dim); text-align: center; margin-top: 10px;">
+      Solo se comparte la tarjeta. El artefacto permanece protegido.
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VOZ ACTIVA -->
+<div class="modal-overlay" id="modalVoz">
+  <div class="modal-box" style="max-width: 380px; text-align: center;">
+    <button class="modal-close" onclick="closeModal('modalVoz'); stopVoice()">✕</button>
+    <div style="font-size: 48px; margin-bottom: 12px;">🔊</div>
+    <div class="modal-title" style="text-align: center;">Modo Alma Voz</div>
+    <div class="modal-body" style="text-align: center;">
+      <p>Alma está leyendo el contenido en voz alta. Todos los textos del artefacto tienen versión auditiva.</p>
+    </div>
+    <button class="btn-confirm" style="margin-top: 8px; width: 100%; padding: 12px;" onclick="closeModal('modalVoz'); stopVoice()">
+      Detener lectura
+    </button>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- PANEL DE DIAGNÓSTICO TEMPORAL -->
+  <div id="debugPanel" style="position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font-family:monospace;font-size:13px;padding:8px 12px;z-index:9999;max-height:160px;overflow-y:auto;border-top:2px solid #0f0;">
+    <strong style="color:#ff0">🔍 DIAGNÓSTICO — borra esto cuando funcione</strong><br>
+    <div id="debugLog"></div>
+  </div>
+
+  <!-- BOTÓN GRANDE: ACTIVAR VOZ — para acompañante de niño con visión cero -->
+  <button class="btn-activar-voz-grande" id="btnActivarVoz" onclick="activarVozGrande()" aria-label="Activar la voz de Alma para empezar">
+    🔊 ACTIVAR VOZ DE ALMA
+  </button>
+
+  <!-- AVISO MICRÓFONO NO DISPONIBLE -->
+  <div class="aviso-micro" id="avisoMicro">
+    <strong>⚠️ Micrófono no disponible</strong><br>
+    Para usar los comandos de voz, abre este archivo directamente en Chrome.<br>
+    <br>
+    Pasos: descarga el archivo → abre Chrome → arrastra el archivo a Chrome.<br>
+    Si Chrome pide permiso de micrófono, pulsa <strong>Permitir</strong>.<br>
+    <br>
+    <em>La lectura en voz alta de Alma sí funciona. Solo los comandos por voz requieren micrófono.</em>
+  </div>
+
+  <main id="main-content" role="main" aria-label="La Fábrica de Números">
+  <!-- HEADER -->
+  <header role="banner" class="header" aria-label="Cabecera de La Fábrica de Números">
+    <div class="header-brand">
+      <div class="header-logo">AlmaAI Lab · MAT</div>
+      <div class="header-title">La Fábrica de Números</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="openModal('modalHelp')" title="Ayuda" aria-label="Abrir instrucciones de ayuda">
+        ❓<span class="tooltip">Ayuda</span>
+      </button>
+      <button class="btn-icon" onclick="toggleVoice()" id="btnVoice" title="Alma Voz" aria-label="Activar o desactivar la voz de Alma" aria-pressed="false">
+        🔊<span class="tooltip">Alma Voz</span>
+      </button>
+      <button class="btn-restart-header" onclick="askRestart()" aria-label="Reiniciar el artefacto desde el principio">↺ Reiniciar</button>
+      <div class="header-code">MAT-3-01</div>
+    </div>
+  </header>
+
+  <!-- PROGRESO -->
+  <div class="progress-section">
+    <div class="progress-top">
+      <span class="progress-label">Progreso de la misión</span>
+      <span class="progress-count" id="progressCount">0 / 9 retos</span>
+    </div>
+    <div class="progress-track">
+      <span style="font-size:18px; flex-shrink:0;">🌍</span>
+      <div class="progress-bar-bg" id="progressBarBg">
+        <div class="progress-bar-fill" id="progressBar" style="width:0%"
+          role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="9"
+          aria-label="Progreso: 0 de 9 retos completados"></div>
+        <div class="progress-rocket" id="progressRocket" style="left:0px">🚀</div>
+      </div>
+      <div class="progress-planet" id="progressPlanet">⭐</div>
+    </div>
+    <div class="progress-dots" id="progressDots"></div>
+    <div class="levels-row">
+      <div class="level-chip active" id="chipFacil">🚀 Despegue</div>
+      <div class="level-chip locked" id="chipExperto">🌙 Órbita</div>
+      <div class="level-chip locked" id="chipGenio">🌟 Galaxia</div>
+    </div>
+  </div>
+
+  <!-- VOICE INDICATOR -->
+  <div class="voice-indicator" id="voiceIndicator">
+    <div class="voice-dot"></div>
+    <span>Alma Voz activo — leyendo en voz alta</span>
+  </div>
+
+  <!-- ALMA BUBBLE -->
+  <div class="alma-bubble" id="almaBubble">
+    <div class="alma-avatar"><div class="av-halo"></div><div class="av-orbit av-orbit-1"><div class="av-dot av-dot-t"></div></div><div class="av-orbit av-orbit-2"><div class="av-dot av-dot-p"></div></div><div class="av-shell"></div><div class="av-flame"></div><div class="av-eye av-el"></div><div class="av-eye av-er"></div><div class="av-mouth"></div></div>
+    <div>
+      <div class="alma-name">Alma · Modo Lógica</div>
+      <div class="alma-text" id="almaText">¡Hola! Soy Alma y hoy comenzamos La Fábrica de Números. Tu misión: dominar los números hasta 9.999. Tres fases te esperan: Despegue, Órbita y Galaxia. ¿Lista o listo para el lanzamiento?</div>
+    </div>
+  </div>
+
+  <!-- ACCESO RAPIDO -->
+  <div class="acceso-rapido" id="accesoRapido">
+    <div class="acceso-title">⚡ Acceso Rápido — AACC</div>
+    <div class="acceso-text">¿Ya conoces bien los números grandes? Puedo llevarte directamente a Órbita o Galaxia.</div>
+    <div class="acceso-btns">
+      <button class="btn-acceso" onclick="accesoRapido('experto')">Ir a Órbita</button>
+      <button class="btn-acceso" onclick="accesoRapido('genio')">Ir a Galaxia</button>
+      <button class="btn-acceso no" onclick="hideAcceso()">Empezar desde el principio</button>
+    </div>
+  </div>
+
+  <!-- CURIOSIDAD DE NIVEL -->
+  <div class="nivel-curiosidad" id="nivelCuriosidad">
+    <div class="nivel-curiosidad-eyebrow">💡 Alma te cuenta un secreto</div>
+    <span class="nivel-curiosidad-emoji" id="nivelCuriosidadEmoji">🤯</span>
+    <div class="nivel-curiosidad-text" id="nivelCuriosidadText"></div>
+    <button class="btn-nivel-curiosidad" onclick="continuarDesdeNivelCuriosidad()">¡Increíble! Seguimos →</button>
+  </div>
+
+  <!-- UNLOCK SCREEN -->
+  <div class="unlock-screen" id="unlockScreen">
+    <div class="unlock-gear" id="unlockGear">⚙️</div>
+    <div class="unlock-title" id="unlockTitle">🌙 ÓRBITA DESBLOQUEADA</div>
+    <div class="unlock-subtitle" id="unlockSubtitle">¡Muy bien! Ya conoces los números por fuera. Ahora vamos a ver qué hay dentro de ellos. ¡A descomponer!</div>
+    <button class="btn-continue" id="unlockBtn" onclick="continueAfterUnlock()">¡Continuar! →</button>
+  </div>
+
+  <!-- REPASO BANNER -->
+  <div class="repaso-banner" id="repasoBanner">
+    <div class="repaso-banner-title">⚠️ Repaso final</div>
+    <div class="repaso-banner-sub" id="repasoBannerSub">Volvemos a intentar este reto. ¡Ahora con todas las pistas!</div>
+  </div>
+
+  <!-- RETO CARD -->
+  <div class="reto-card" id="retoCard" style="display:none">
+    <div class="reto-header">
+      <span class="reto-badge" id="retoBadge">🚀 Despegue</span>
+      <span class="reto-num" id="retoNum">01</span>
+    </div>
+    <div class="reto-question" id="retoQuestion"></div>
+    <div class="reto-sublabel" id="retoSubLabel"></div>
+    <div class="options-grid" id="optionsGrid" style="display:none"></div>
+    <div class="input-row" id="inputRow" style="display:none">
+      <label for="textInput" class="sr-only">Escribe tu respuesta</label>
+      <input class="text-input" id="textInput" placeholder="Escribe tu respuesta…" aria-label="Campo de respuesta" autocomplete="off" />
+      <button class="btn-confirm" onclick="checkInput()">→</button>
+    </div>
+    <div class="feedback-box" id="feedbackBox" role="alert" aria-live="assertive" aria-atomic="true"></div>
+    <div class="alma-hint" id="almaHint">
+      <div class="alma-hint-label">💡 Pista de Alma</div>
+      <div id="almaHintText"></div>
+    </div>
+    <aside class="curiosity-box" id="curiosityBox" aria-label="Curiosidad de Alma" aria-live="polite">
+      <div class="curiosity-header">💡 Curiosidad de Alma</div>
+      <div class="curiosity-text" id="curiosityText"></div>
+    </aside>
+    <button class="btn-next" id="btnNext" onclick="nextReto()" aria-label="Continuar al siguiente reto">Siguiente reto →</button>
+
+  </div>
+
+  <!-- VICTORY SCREEN -->
+  <div class="victory-screen" id="victoryScreen">
+    <div class="victory-trophy">⚙️🏆⚙️</div>
+    <div class="victory-logro">Logro desbloqueado</div>
+    <div class="victory-title">Ingeniera de Números</div>
+    <div class="victory-subtitle" id="victorySubtitle">¡Lo has conseguido! Ya eres Ingeniera de Números. Eso significa que no solo lees los números: los entiendes por dentro y por fuera. Guarda este logro, porque lo vas a necesitar para lo que viene.</div>
+    <div class="victory-actions">
+      <button class="btn-share" onclick="openModal('modalLogro')">🏅 Ver mi logro</button>
+      <button class="btn-share" onclick="restartGame()" style="border-color: var(--white-dim); color: var(--white-dim);">🔄 Volver a jugar</button>
+    </div>
+    <div style="margin-top: 40px;">
+      <div class="qr-placeholder">📷</div>
+      <div class="qr-label" style="margin-bottom:4px">📸 GUARDAR MI LOGRO</div>
+      <div style="margin-top: 16px;">
+        <a href="https://www.instagram.com/almaia_labs/" target="_blank" rel="noopener" style="text-decoration:none;">
+          <div class="qr-placeholder" style="cursor:pointer; border-color: var(--purple);">📱</div>
+          <div class="qr-label" style="color: var(--purple);">@almaia_labs · Instagram</div>
+          <div style="font-size:11px; color: var(--white-dim); margin-top:4px; letter-spacing:1px;">Toca para visitar</div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+  <script>
+  /* ── CELEBRACIÓN — bloque fijo ── */
+  function launchConfetti() {
+    var colors = ['#ce93d8','#f06292','#29b6f6','#ffb300','#66bb6a','#fff176','#ff8a65'];
+    for (var i = 0; i < 60; i++) {
+      (function(i) {
+        setTimeout(function() {
+          var el = document.createElement('div');
+          el.className = 'confetti-piece';
+          el.style.left = (Math.random() * 100) + 'vw';
+          el.style.background = colors[Math.floor(Math.random() * colors.length)];
+          el.style.width  = (6 + Math.random() * 8) + 'px';
+          el.style.height = (6 + Math.random() * 8) + 'px';
+          el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+          var dur = 1.8 + Math.random() * 1.4;
+          el.style.animationDuration = dur + 's';
+          document.body.appendChild(el);
+          setTimeout(function() { el.remove(); }, dur * 1000 + 100);
+        }, i * 25);
+      })(i);
+    }
+  }
+  function playSuccessSound() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var notes = [523.25, 659.25, 783.99, 1046.5];
+      for (var i = 0; i < notes.length; i++) {
+        (function(freq, t) {
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + t);
+          gain.gain.setValueAtTime(0, ctx.currentTime + t);
+          gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + t + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.36);
+          osc.start(ctx.currentTime + t);
+          osc.stop(ctx.currentTime + t + 0.36);
+        })(notes[i], i * 0.13);
+      }
+    } catch(e) {}
+  }
+  function celebrate() { launchConfetti(); playSuccessSound(); }
+  </script>
+<script>
+// ═══════════════════════════════════════
+// DATOS DEL ARTEFACTO
+// ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// SETS DE PREGUNTAS — 3 combinaciones
+// MAT-3-01 · La Fábrica de Números
+// Contexto: videojuegos, cartas, torneos
+// ═══════════════════════════════════════
+const retosSets = [
+
+// ── SET A — Videojuego de plataformas ──────────────────────────────────
+[
+  {
+    nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
+    question:'En un videojuego de plataformas, el explorador lleva acumulados tres mil doscientos cincuenta puntos. ¿Cómo se escribe ese número?',
+    subLabel:'Elige la opción correcta',
+    type:'opcion', leerOpcionesComoDigitos:true,
+    opciones:['3.025','3.250','3.520','2.350'], correcta:1,
+    feedback_ok:'¡Exacto! Tres mil doscientos cincuenta = 3.250.',
+    feedback_err:'Fíjate en cada parte del número.',
+    pista1:'Piensa: "tres mil" = 3.000. ¿Cuánto es "doscientos cincuenta"?',
+    pista2:'Separa el número: 3.000 (tres mil) + 250 (doscientos cincuenta). Busca en las opciones cuál es esa suma.',
+    curiosidad:'Los primeros videojuegos de plataformas aparecieron en los años 80. ¡Los programadores de entonces escribían todos los números del juego en código binario, usando solo ceros y unos!'
+  },
+  {
+    nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
+    question:'El mapa del videojuego tiene 4 zonas. En la primera hay 2.400 monedas, en la segunda 1.300. ¿Cuántas monedas hay en la zona con más?',
+    subLabel:'Elige la zona con más monedas',
+    type:'opcion', leerOpcionesComoDigitos:false,
+    opciones:['La zona 1 con 2.400','La zona 2 con 1.300','Las dos tienen igual','No se puede saber'], correcta:0,
+    feedback_ok:'¡Correcto! 2.400 es mayor que 1.300.',
+    feedback_err:'Compara los millares de cada número.',
+    pista1:'Fíjate en el primer dígito de cada número: 2.400 empieza por 2 y 1.300 empieza por 1.',
+    pista2:'El primer dígito indica los millares: 2.400 tiene 2 millares y 1.300 tiene 1 millar. ¿Cuál de los dos es mayor?',
+    curiosidad:'En los videojuegos, los puntos se cuentan con números muy grandes para que siempre sientas que estás progresando. ¡Es una técnica de diseño estudiada por psicólogos!'
+  },
+  {
+    nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
+    question:'Cuatro jugadores tienen estas puntuaciones: Alex: 1.850 · Sam: 3.100 · Kim: 2.450 · Leo: 1.090. Ordénalas de menor a mayor.',
+    subLabel:'Elige el orden correcto',
+    type:'opcion', leerOpcionesComoDigitos:false,
+    opciones:['Leo · Alex · Kim · Sam','Sam · Kim · Alex · Leo','Alex · Leo · Sam · Kim','Kim · Sam · Leo · Alex'], correcta:0,
+    feedback_ok:'¡Perfecto! 1.090 · 1.850 · 2.450 · 3.100. ¡De menor a mayor!',
+    feedback_err:'Ordena mirando el primer dígito de cada número.',
+    pista1:'¿Cuál es el número que empieza por 1 y es más pequeño? Ese va primero.',
+    pista2:'Hay dos números que empiezan por 1: 1.090 y 1.850. En las decenas, 0 < 8, así que 1.090 va antes que 1.850.',
+    curiosidad:'Ordenar de menor a mayor se llama orden ascendente. ¡Los ordenadores hacen esto millones de veces por segundo cuando buscas algo en internet!'
+  },
+  {
+    nivel:'experto', nivelLabel:'Órbita', levelColor:'#2a5fc4',
+    question:'El explorador tiene 5.000 puntos. Pierde 300 por caer en una trampa y gana 200 por recoger una estrella. ¿Cuántos puntos tiene ahora?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['4900','4.900'],
+    feedback_ok:'¡Exacto! 5.000 - 300 = 4.700. Luego 4.700 + 200 = 4.900.',
+    feedback_err:'Haz las operaciones en orden: primero resta, luego suma.',
+    pista1:'Haz el primer paso: 5.000 - 300 = ¿cuánto? Con ese resultado, suma después los 200 ganados.',
+    pista2:'Haz la resta 5.000 - 300. Con ese resultado, súmale los 200 ganados.',
+    curiosidad:'Los diseñadores de videojuegos calculan exactamente cuántos puntos da cada acción para que el juego sea equilibrado. ¡Hay expertos que solo se dedican a eso!'
+  },
+  {
+    nivel:'experto', nivelLabel:'Órbita', levelColor:'#2a5fc4',
+    question:'El marcador muestra el número 4.763. ¿Cuánto vale el dígito 7 en ese número?',
+    subLabel:'Elige la opción correcta',
+    type:'opcion', leerOpcionesComoDigitos:false,
+    opciones:['7','70','700','7.000'], correcta:2,
+    feedback_ok:'¡Correcto! El 7 está en las centenas, así que vale 700.',
+    feedback_err:'Fíjate en qué posición está el 7 dentro del número.',
+    pista1:'En 4.763, los dígitos de izquierda a derecha son: miles · centenas · decenas · unidades. ¿En qué posición está el 7?',
+    pista2:'El 7 está en la posición de las centenas. Piensa: una centena vale 100. ¿Cuánto son 7 centenas?',
+    curiosidad:'El sistema de valor posicional fue inventado en la India hace más de 1.500 años. Sin ese invento, hacer cálculos grandes sería casi imposible.'
+  },
+  {
+    nivel:'experto', nivelLabel:'Órbita', levelColor:'#2a5fc4',
+    question:'El número de puntos récord es 8.000 + 500 + 40 + 6. ¿Qué número es?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['8546','8.546'],
+    feedback_ok:'¡Exacto! 8.000 + 500 + 40 + 6 = 8.546.',
+    feedback_err:'Suma cada parte: miles, centenas, decenas y unidades.',
+    pista1:'8.000 + 500 = 8.500. ¿Cuánto es 8.500 + 40?',
+    pista2:'Empieza: 8.000 + 500. Al resultado súmale 40. Al nuevo resultado súmale 6.',
+    curiosidad:'Descomponer números en sus partes es lo que hacen los ordenadores constantemente. ¡La fábrica de números existe de verdad!'
+  },
+  {
+    nivel:'genio', nivelLabel:'Galaxia', levelColor:'#f5c842',
+    question:'En el torneo hay 9.000 participantes. En la primera ronda eliminan a 3.450. En la segunda ronda eliminan a 2.130 más. ¿Cuántos siguen en el torneo?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['3420','3.420'],
+    feedback_ok:'¡Brillante! 9.000 - 3.450 = 5.550. Luego 5.550 - 2.130 = 3.420.',
+    feedback_err:'Haz dos restas en orden: primero la primera ronda, luego la segunda.',
+    pista1:'Primer paso: 9.000 - 3.450 = ¿cuánto? Con ese resultado, ¿cuántos quedan tras restar también los 2.130 de la segunda ronda?',
+    pista2:'Haz 9.000 - 3.450 para saber los que quedan tras la primera ronda. A ese resultado réstale 2.130.',
+    curiosidad:'Los torneos de videojuegos pueden tener millones de participantes. ¡El récord mundial fue de más de 8 millones de personas conectadas al mismo tiempo!'
+  },
+  {
+    nivel:'genio', nivelLabel:'Galaxia', levelColor:'#f5c842',
+    question:'El juego tiene 4 mundos. El mundo 1 tiene 1.250 monedas, el mundo 2 tiene el doble que el 1, el mundo 3 tiene 500 menos que el 2. ¿Cuántas monedas tiene el mundo 3?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['2000','2.000'],
+    feedback_ok:'¡Exacto! Mundo 2: 1.250 × 2 = 2.500. Mundo 3: 2.500 - 500 = 2.000.',
+    feedback_err:'Ve paso a paso: calcula primero el mundo 2, luego el mundo 3.',
+    pista1:'Mundo 2 = 1.250 × 2. Con ese resultado, réstale 500 para obtener el mundo 3.',
+    pista2:'Calcula 1.250 × 2 para el mundo 2. Con ese resultado, réstale 500 para obtener el mundo 3.',
+    curiosidad:'Los diseñadores de videojuegos usan exactamente este tipo de matemáticas para repartir recompensas. Se llama "curva de progresión".'
+  },
+  {
+    nivel:'genio', nivelLabel:'Galaxia', levelColor:'#f5c842',
+    question:'¿Cuál es el número más grande que puedes formar con los dígitos 3, 9, 0 y 7, usando cada uno solo una vez?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['9730','9.730'],
+    feedback_ok:'¡Perfecto! Para el mayor número: coloca los dígitos de mayor a menor. El 0 nunca va delante.',
+    feedback_err:'Para el número más grande, coloca el dígito mayor en los millares.',
+    pista1:'¿Cuál es el dígito más grande de los cuatro? Ese va en los millares (primera posición).',
+    pista2:'Para el número mayor: coloca los dígitos de mayor a menor en cada posición: miles, centenas, decenas, unidades.',
+    curiosidad:'Para el número más grande posible siempre colocas los dígitos de mayor a menor. En programación esto se llama buscar el máximo.'
+  }
+],
+
+// ── SET B — Colección de cartas de criaturas ───────────────────────────
+[
+  {
+    nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
+    question:'Una jugadora tiene una colección de dos mil ochocientas setenta cartas de criaturas. ¿Cómo se escribe ese número?',
+    subLabel:'Elige la opción correcta',
+    type:'opcion', leerOpcionesComoDigitos:true,
+    opciones:['2.078','2.780','2.870','2.807'], correcta:2,
+    feedback_ok:'¡Exacto! Dos mil ochocientas setenta = 2.870.',
+    feedback_err:'Separa el número en partes: dos mil, ochocientas, setenta.',
+    pista1:'Dos mil = 2.000. Ochocientas = 800. Setenta = 70. ¿Cuánto es 2.000 + 800 + 70?',
+    pista2:'Suma 2.000 + 800. Al resultado súmale 70. Busca esa cifra en las opciones.',
+    curiosidad:'Los coleccionistas de cartas forman una comunidad enorme. ¡Hay cartas que se venden por miles de euros por ser muy raras!'
+  },
+  {
+    nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
+    question:'Dos coleccionistas comparan sus álbumes: Clara tiene 3.420 cartas · Mateo tiene 3.240 cartas. ¿Quién tiene más?',
+    subLabel:'Elige la opción correcta',
+    type:'opcion', leerOpcionesComoDigitos:false,
+    opciones:['Clara con 3.420','Mateo con 3.240','Tienen las mismas','No se puede saber'], correcta:0,
+    feedback_ok:'¡Correcto! 3.420 > 3.240. Los millares son iguales, pero en centenas, 4 > 2.',
+    feedback_err:'Compara cifra a cifra empezando por la izquierda.',
+    pista1:'Los millares son iguales (ambos tienen 3.000). Mira ahora las centenas: 3.420 tiene 4 centenas y 3.240 tiene 2.',
+    pista2:'Los millares son iguales. Mira las centenas: 3.420 tiene 4 centenas y 3.240 tiene 2 centenas. ¿Cuál es mayor?',
+    curiosidad:'Comparar cantidades es una forma natural de aprender matemáticas. ¡El cerebro humano está diseñado para comparar!'
+  },
+  {
+    nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
+    question:'Cuatro coleccionistas tienen estas cartas: Luna: 4.100 · Río: 2.980 · Sol: 3.500 · Mar: 1.750. Ordénalas de mayor a menor.',
+    subLabel:'Elige el orden correcto',
+    type:'opcion', leerOpcionesComoDigitos:false,
+    opciones:['Luna · Sol · Río · Mar','Sol · Luna · Mar · Río','Mar · Río · Sol · Luna','Luna · Mar · Sol · Río'], correcta:0,
+    feedback_ok:'¡Perfecto! 4.100 · 3.500 · 2.980 · 1.750. Luna tiene la mayor colección.',
+    feedback_err:'Ordena mirando el primer dígito de cada número.',
+    pista1:'¿Cuál empieza por 4? ¿Cuál por 3? ¿Cuál por 2? ¿Cuál por 1? Ese es el orden de mayor a menor.',
+    pista2:'Ordena los cuatro números de mayor a menor mirando el primer dígito de cada uno: 4, 3, 2, 1.',
+    curiosidad:'Ordenar de mayor a menor se llama orden descendente. ¡En subastas de cartas coleccionables, tener la colección más grande puede valer miles de euros!'
+  },
+  {
+    nivel:'experto', nivelLabel:'Órbita', levelColor:'#2a5fc4',
+    question:'En el campeonato de cartas había 6.000 participantes. Se clasificaron 1.250 en la primera fase y 2.350 más en la segunda. ¿Cuántos quedaron eliminados en total?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['2400','2.400'],
+    feedback_ok:'¡Exacto! Clasificados: 1.250 + 2.350 = 3.600. Eliminados: 6.000 - 3.600 = 2.400.',
+    feedback_err:'Primero suma los clasificados de ambas fases, luego resta del total.',
+    pista1:'Suma los clasificados: 1.250 + 2.350 = ¿cuántos? Con ese total, réstalo de 6.000 para saber los eliminados.',
+    pista2:'Suma los clasificados de las dos fases. Con ese total, réstalo de 6.000.',
+    curiosidad:'Los torneos de cartas reales usan este sistema de eliminación. ¡Los matemáticos que los diseñan usan álgebra para que el formato sea justo!'
+  },
+  {
+    nivel:'experto', nivelLabel:'Órbita', levelColor:'#2a5fc4',
+    question:'Una carta tiene el código 5.382. ¿Cuánto vale el dígito 3 en ese número?',
+    subLabel:'Elige la opción correcta',
+    type:'opcion', leerOpcionesComoDigitos:false,
+    opciones:['3','30','300','3.000'], correcta:2,
+    feedback_ok:'¡Correcto! El 3 está en las centenas: vale 300.',
+    feedback_err:'Fíjate en qué posición está el dígito 3 dentro del número.',
+    pista1:'En 5.382: miles · centenas · decenas · unidades. El 5 son miles. El 3, ¿qué posición ocupa?',
+    pista2:'El 3 está en las centenas. Piensa: una centena vale 100. ¿Cuánto son 3 de ellas?',
+    curiosidad:'Los códigos de identificación de productos usan el valor posicional para codificar información. ¡El código de barras funciona exactamente igual!'
+  },
+  {
+    nivel:'experto', nivelLabel:'Órbita', levelColor:'#2a5fc4',
+    question:'La carta más poderosa tiene una fuerza de 7.000 + 200 + 80 + 5. ¿Cuál es su valor total?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['7285','7.285'],
+    feedback_ok:'¡Exacto! 7.000 + 200 + 80 + 5 = 7.285.',
+    feedback_err:'Suma cada parte por separado y luego únelas.',
+    pista1:'7.000 + 200 = 7.200. Ahora súmale 80, y al resultado final súmale el 5.',
+    pista2:'Suma 7.000 + 200. Al resultado súmale 80. Al nuevo resultado súmale 5.',
+    curiosidad:'Los juegos de cartas tienen miles de cartas distintas, cada una con sus estadísticas. ¡Los programadores trabajan con millones de números para que el juego esté equilibrado!'
+  },
+  {
+    nivel:'genio', nivelLabel:'Galaxia', levelColor:'#f5c842',
+    question:'Una tienda tenía 8.500 cartas. Vendió 3.275 el lunes y recibió 1.400 nuevas el martes. ¿Cuántas cartas tiene ahora?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['6625','6.625'],
+    feedback_ok:'¡Brillante! 8.500 - 3.275 = 5.225. Luego 5.225 + 1.400 = 6.625.',
+    feedback_err:'Primero resta las vendidas, luego suma las nuevas. Dos pasos.',
+    pista1:'8.500 - 3.275 = ¿cuántas quedan? Con ese resultado, súmale las 1.400 nuevas.',
+    pista2:'Resta 8.500 - 3.275. Con el resultado, súmale las 1.400 cartas nuevas.',
+    curiosidad:'Las tiendas de juegos usan programas para llevar el inventario. ¡Hacen exactamente estas operaciones con miles de productos a la vez!'
+  },
+  {
+    nivel:'genio', nivelLabel:'Galaxia', levelColor:'#f5c842',
+    question:'Una colección tiene cartas de 3 tipos. Las de fuego son 2.100. Las de agua son 1.500 menos que las de fuego. Las de tierra son el doble que las de agua. ¿Cuántas cartas de tierra hay?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['1200','1.200'],
+    feedback_ok:'¡Exacto! Fuego: 2.100. Agua: 2.100 - 1.500 = 600. Tierra: 600 × 2 = 1.200.',
+    feedback_err:'Ve paso a paso: primero calcula las de agua, luego las de tierra.',
+    pista1:'Agua = 2.100 - 1.500 = ¿cuántas? Con ese número, multiplícalo por 2 para obtener las de tierra.',
+    pista2:'Calcula 2.100 - 1.500 para las de agua. Con ese resultado, multiplícalo por 2 para las de tierra.',
+    curiosidad:'Los diseñadores de juegos usan relaciones matemáticas para equilibrar los tipos de cartas. ¡Requiere cálculos muy precisos!'
+  },
+  {
+    nivel:'genio', nivelLabel:'Galaxia', levelColor:'#f5c842',
+    question:'¿Cuál es el número más pequeño que puedes formar con los dígitos 5, 1, 8 y 0, usando cada uno solo una vez? (el 0 no puede ir delante)',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['1058','1.058'],
+    feedback_ok:'¡Perfecto! Para el número más pequeño: el dígito menor va en los millares (sin contar el 0), luego el 0, luego el resto de menor a mayor.',
+    feedback_err:'Para el número más pequeño, pon el dígito menor en los millares. ¡Recuerda que el 0 no puede ir primero!',
+    pista1:'El dígito más pequeño que puede ir en los millares (sin ser 0) es el 1. Después del 1, ¿qué dígito pequeño va?',
+    pista2:'El dígito menor que puede ir primero (sin ser 0) es el 1. Tras él, coloca el 0, y luego los demás de menor a mayor.',
+    curiosidad:'Para el número más pequeño posible, los dígitos van de menor a mayor, con cuidado de que el 0 no vaya delante. En programación esto se llama buscar el mínimo.'
+  }
+],
+
+// ── SET C — Torneo escolar de juegos ───────────────────────────────────
+[
+  {
+    nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
+    question:'En el torneo escolar, el equipo campeón marcó cuatro mil quinientos veinte puntos. ¿Cómo se escribe?',
+    subLabel:'Elige la opción correcta',
+    type:'opcion', leerOpcionesComoDigitos:true,
+    opciones:['4.052','4.250','4.502','4.520'], correcta:3,
+    feedback_ok:'¡Exacto! Cuatro mil quinientos veinte = 4.520.',
+    feedback_err:'Separa el número en partes: cuatro mil, quinientos, veinte.',
+    pista1:'Cuatro mil = 4.000. Quinientos = 500. Veinte = 20. ¿Cuánto es 4.000 + 500 + 20?',
+    pista2:'Suma 4.000 + 500. Al resultado súmale 20. Busca esa cifra en las opciones.',
+    curiosidad:'Los torneos escolares de matemáticas existen en casi todos los países. ¡En algunos países, los torneos matemáticos tienen más audiencia que los deportivos!'
+  },
+  {
+    nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
+    question:'Dos equipos compiten en el torneo: Equipo Rojo: 2.750 puntos · Equipo Azul: 2.570 puntos. ¿Qué equipo va ganando?',
+    subLabel:'Elige la opción correcta',
+    type:'opcion', leerOpcionesComoDigitos:false,
+    opciones:['El Equipo Rojo','El Equipo Azul','Están empatados','No se puede saber'], correcta:0,
+    feedback_ok:'¡Correcto! 2.750 > 2.570. El Equipo Rojo va ganando.',
+    feedback_err:'Los millares son iguales. Compara las centenas.',
+    pista1:'Ambos tienen 2.000 (los millares son iguales). Mira las centenas: 2.750 tiene 7 y 2.570 tiene 5.',
+    pista2:'Los millares son iguales (ambos 2.000). Compara las centenas: 2.750 tiene 7 centenas y 2.570 tiene 5.',
+    curiosidad:'Los árbitros tienen que comparar puntuaciones constantemente. ¡Un error de un punto puede cambiar al ganador!'
+  },
+  {
+    nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
+    question:'Cuatro equipos del torneo tienen estas puntuaciones: Cóndores: 3.800 · Halcones: 1.950 · Águilas: 3.200 · Gorriones: 2.600. Ordénalos de menor a mayor.',
+    subLabel:'Elige el orden correcto',
+    type:'opcion', leerOpcionesComoDigitos:false,
+    opciones:['Halcones · Gorriones · Águilas · Cóndores','Cóndores · Águilas · Gorriones · Halcones','Águilas · Cóndores · Halcones · Gorriones','Gorriones · Halcones · Cóndores · Águilas'], correcta:0,
+    feedback_ok:'¡Perfecto! 1.950 · 2.600 · 3.200 · 3.800. Los Halcones tienen mucho que remontar.',
+    feedback_err:'El número más pequeño empieza por 1. ¿Cuál es ese equipo?',
+    pista1:'¿Cuál es el número que empieza por 1? Ese equipo va el primero. ¿Cuál empieza por 2?',
+    pista2:'Ordena mirando el primer dígito de menor a mayor: 1, 2, 3, 3. Los dos que empiezan por 3: compara sus centenas.',
+    curiosidad:'Los matemáticos llaman "orden ascendente" a ordenar de menor a mayor. ¡Es igual de útil que el descendente!'
+  },
+  {
+    nivel:'experto', nivelLabel:'Órbita', levelColor:'#2a5fc4',
+    question:'El equipo ganador necesita 5.000 puntos para el trofeo. Lleva 2.340 en la primera mitad y consigue 1.850 en la segunda. ¿Cuántos puntos le faltan para el trofeo?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['810'],
+    feedback_ok:'¡Exacto! Total conseguido: 2.340 + 1.850 = 4.190. Faltan: 5.000 - 4.190 = 810.',
+    feedback_err:'Primero suma los puntos de ambas mitades, luego resta de 5.000.',
+    pista1:'2.340 + 1.850 = ¿cuántos puntos en total? Con ese resultado, réstalo de 5.000 para saber cuántos faltan.',
+    pista2:'Suma los puntos de las dos mitades. Con ese total, réstalo de 5.000.',
+    curiosidad:'Los matemáticos que diseñan sistemas de puntuación calculan que siempre haya posibilidades de remontar hasta el final. ¡Sin matemáticas, no habría emoción!'
+  },
+  {
+    nivel:'experto', nivelLabel:'Órbita', levelColor:'#2a5fc4',
+    question:'El marcador muestra 6.491. ¿Cuánto vale el dígito 4?',
+    subLabel:'Elige la opción correcta',
+    type:'opcion', leerOpcionesComoDigitos:false,
+    opciones:['4','40','400','4.000'], correcta:2,
+    feedback_ok:'¡Correcto! El 4 está en las centenas: vale 400.',
+    feedback_err:'Fíjate en qué posición está el 4 dentro del número 6.491.',
+    pista1:'En 6.491: el primer dígito son miles, el segundo centenas, el tercero decenas, el cuarto unidades. ¿En qué posición está el 4?',
+    pista2:'El 4 está en las centenas. Piensa: una centena vale 100. ¿Cuánto son 4 de ellas?',
+    curiosidad:'Los primeros marcadores electrónicos del mundo se instalaron en estadios olímpicos en los años 60 y eran del tamaño de una pared.'
+  },
+  {
+    nivel:'experto', nivelLabel:'Órbita', levelColor:'#2a5fc4',
+    question:'La puntuación récord del torneo es 3.000 + 600 + 20 + 9. ¿Cuánto es?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['3629','3.629'],
+    feedback_ok:'¡Exacto! 3.000 + 600 + 20 + 9 = 3.629.',
+    feedback_err:'Suma las partes de izquierda a derecha.',
+    pista1:'3.000 + 600 = 3.600. Súmale 20 a 3.600, y al resultado súmale el 9.',
+    pista2:'Suma 3.000 + 600. Al resultado súmale 20. Al nuevo resultado súmale 9.',
+    curiosidad:'El récord mundial de cálculo mental lo tiene una persona que puede multiplicar números de 10 cifras en segundos. ¡Lleva toda la vida entrenando!'
+  },
+  {
+    nivel:'genio', nivelLabel:'Galaxia', levelColor:'#f5c842',
+    question:'En el torneo hay 7.200 participantes. En cuartos de final pasan 1.800. En semifinales pasa la mitad de los de cuartos. ¿Cuántos llegan a la final?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['900'],
+    feedback_ok:'¡Brillante! Cuartos: 1.800 pasan. Semifinales: 1.800 ÷ 2 = 900 finalistas.',
+    feedback_err:'De los 1.800 que pasan a cuartos, solo llega la mitad a semifinales.',
+    pista1:'De los 1.800 que pasan a cuartos, llega a semifinales la mitad: 1.800 ÷ 2 = ¿cuántos finalistas?',
+    pista2:'La mitad de un número es dividirlo entre 2. ¿Cuánto es 1.800 ÷ 2?',
+    curiosidad:'Un torneo de tenis Grand Slam tiene 128 jugadores y necesita exactamente 7 rondas para encontrar al campeón, porque 2 elevado a 7 es 128.'
+  },
+  {
+    nivel:'genio', nivelLabel:'Galaxia', levelColor:'#f5c842',
+    question:'Tres equipos llevan estos puntos: Rayos 4.500, Truenos 1.200 menos que Rayos, Relámpagos el doble que Truenos. ¿Cuántos puntos tienen los Relámpagos?',
+    subLabel:'Escribe solo el número (ejemplo: 1.234)',
+    type:'input', correctas:['6600','6.600'],
+    feedback_ok:'¡Exacto! Rayos: 4.500. Truenos: 4.500 - 1.200 = 3.300. Relámpagos: 3.300 × 2 = 6.600.',
+    feedback_err:'Calcula primero los puntos de Truenos, luego los de Relámpagos.',
+    pista1:'Truenos = 4.500 - 1.200 = ¿cuántos? Con ese resultado, multiplícalo por 2 para los Relámpagos.',
+    pista2:'Calcula 4.500 - 1.200 para los Truenos. Con ese resultado, multiplícalo por 2 para los Relámpagos.',
+    curiosidad:'Los equipos de deportes electrónicos tienen analistas de datos que calculan estadísticas constantemente. ¡Algunos tienen matemáticos en su plantilla!'
+  },
+  {
+    nivel:'genio', nivelLabel:'Galaxia', levelColor:'#f5c842',
+    question:'Con los dígitos 2, 6, 4 y 1 forma dos números de 4 cifras: el mayor y el menor posibles. ¿Cuánto suman los dos?',
+    subLabel:'Escribe solo la suma (ejemplo: 1.234)',
+    type:'input', correctas:['7667','7.667'],
+    feedback_ok:'¡Perfecto! Mayor: 6.421. Menor: 1.246. Suma: 6.421 + 1.246 = 7.667.',
+    feedback_err:'Forma primero el número mayor (dígitos de mayor a menor) y luego el menor (de menor a mayor).',
+    pista1:'Mayor (de mayor a menor): 6.421. Menor (de menor a mayor): 1.246. Ahora súmalos: 6.421 + 1.246 = ¿cuánto?',
+    pista2:'Forma el mayor (dígitos de mayor a menor) y el menor (de menor a mayor). Luego súmalos.',
+    curiosidad:'Al sumar el número mayor y el menor posibles con los mismos dígitos, el resultado siempre mezcla los dígitos originales. ¡Los matemáticos estudian estos patrones ocultos!'
+  }
+]
+
+]; // fin retosSets
+
+function pickRandomSet() {
+  var idx = Math.floor(Math.random() * retosSets.length);
+  return retosSets[idx];
+}
+
+var lastSetIdx = -1;
+function pickNextSet() {
+  var idx;
+  do { idx = Math.floor(Math.random() * retosSets.length); } while (idx === lastSetIdx && retosSets.length > 1);
+  lastSetIdx = idx;
+  return retosSets[idx];
+}
+
+let retos = pickRandomSet();
+
+
+// ═══════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════
+var state = {
+  retoIndex: 0,
+  completados: 0,       // retos resueltos correctamente
+  intentoActual: 0,
+  fase: 'acceso',       // acceso | jugando | repaso | victoria
+  expertoUnlocked: false,
+  genioUnlocked: false,
+  aciertosNivel: 0,
+  skipUnlock: false,
+  voiceActive: false,
+  recognition: null,
+  voiceQueue: [],
+  _speakingLock: false,
+  pendientes: [],       // índices de retos fallidos que se repasan al final
+  enRepaso: false,      // true cuando estamos en el bloque de repaso
+  repasoQueue: [],      // cola de retos pendientes durante el repaso
+  intentoRepaso: 0      // intentos dentro de cada reto de repaso
+};
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+window.onload = function() {
+  updateProgressDots();
+  // La voz no se activa sola — requiere interacción del usuario (botón grande o botón de voz)
+};
+
+// ═══════════════════════════════════════
+// ACCESO RAPIDO
+// ═══════════════════════════════════════
+function hideAcceso() {
+  document.getElementById('accesoRapido').style.display = 'none';
+  startGame(0);
+}
+
+// ═══════════════════════════════════════
+// DIAGNÓSTICO — ACCESO RÁPIDO AACC
+// ═══════════════════════════════════════
+var diagPreguntas = {
+  experto: [
+    {
+      titulo: '¿Lista o listo para Órbita?',
+      intro: 'Órbita trabaja el valor posicional y la descomposición. Responde esta pregunta para acceder directamente.',
+      question: 'El número 6.384 tiene un dígito en las centenas. ¿Cuánto vale ese dígito?',
+      opciones: ['3', '30', '300', '3.000'],
+      correcta: 2,
+      feedback_ok: '¡Perfecto! El 3 está en las centenas: vale 300. ¡Tienes la base para Órbita!',
+      feedback_err: 'Fíjate en la posición de cada dígito en 6.384. Las posiciones son: miles, centenas, decenas, unidades.',
+      nivelDestino: 'experto'
+    },
+    {
+      titulo: '¿Lista o listo para Órbita? Segunda oportunidad',
+      intro: 'Una pregunta diferente. ¡Tú puedes!',
+      question: 'En el número 8.047, ¿cuánto vale el dígito 8?',
+      opciones: ['8', '80', '800', '8.000'],
+      correcta: 3,
+      feedback_ok: '¡Exacto! El 8 está en los millares: vale 8.000. ¡Adelante a Órbita!',
+      feedback_err: 'El primer dígito de un número de 4 cifras siempre ocupa la posición de los millares.',
+      nivelDestino: 'experto'
+    }
+  ],
+  genio: [
+    {
+      titulo: '¿Lista o listo para Galaxia?',
+      intro: 'Galaxia trabaja operaciones encadenadas y razonamiento numérico avanzado. Responde esta pregunta para acceder directamente.',
+      question: 'Una tienda tiene 7.500 productos. Vende 2.350 y recibe 800 nuevos. ¿Cuántos productos tiene ahora?',
+      opciones: ['5.950', '4.350', '5.150', '6.700'],
+      correcta: 0,
+      feedback_ok: '¡Brillante! 7.500 - 2.350 = 5.150. Luego 5.150 + 800 = 5.950. ¡Galaxia te espera!',
+      feedback_err: 'Hazlo en dos pasos: primero resta los vendidos, luego suma los que llegan.',
+      nivelDestino: 'genio'
+    },
+    {
+      titulo: '¿Lista o listo para Galaxia? Segunda oportunidad',
+      intro: 'Una pregunta diferente. ¡Confío en ti!',
+      question: 'Una biblioteca tiene 6.200 libros. Presta 1.450 en enero y recibe 900 nuevos en febrero. ¿Cuántos libros tiene ahora?',
+      opciones: ['5.650', '4.750', '5.750', '6.650'],
+      correcta: 0,
+      feedback_ok: '¡Perfecto! 6.200 - 1.450 = 4.750. Luego 4.750 + 900 = 5.650. ¡A Galaxia!',
+      feedback_err: 'Dos pasos: primero resta los prestados, luego suma los nuevos.',
+      nivelDestino: 'genio'
+    }
+  ]
+};
+
+var diagNivelActual = null;
+var diagIntentoActual = 0;
+
+function accesoRapido(nivel) {
+  diagNivelActual = nivel;
+  diagIntentoActual = 0;
+  cargarPreguntaDiag(nivel, 0);
+  document.getElementById('diagnosticoOverlay').classList.add('show');
+}
+
+function cargarPreguntaDiag(nivel, intento) {
+  var datos = diagPreguntas[nivel][intento];
+
+  document.getElementById('diagTitle').textContent = datos.titulo;
+  document.getElementById('diagIntro').textContent = datos.intro;
+  document.getElementById('diagQuestion').textContent = datos.question;
+  document.getElementById('diagFeedback').className = 'diagnostico-feedback';
+  document.getElementById('diagFeedback').textContent = '';
+
+  var opts = document.getElementById('diagOptions');
+  opts.innerHTML = '';
+  datos.opciones.forEach(function(op, i) {
+    var btn = document.createElement('button');
+    btn.className = 'diagnostico-opt';
+    btn.textContent = op;
+    btn.onclick = function() { checkDiagnostico(i, btn); };
+    opts.appendChild(btn);
+  });
+
+  if (state.voiceActive) {
+    speakQueue([datos.titulo, datos.intro, datos.question,
+      datos.opciones.map(function(op, i) { return 'Opción ' + (i+1) + ': ' + op; }).join('. ')
+    ]);
+  }
+}
+
+function checkDiagnostico(idx, btn) {
+  var datos = diagPreguntas[diagNivelActual][diagIntentoActual];
+  var allBtns = document.querySelectorAll('.diagnostico-opt');
+  allBtns.forEach(function(b) { b.disabled = true; });
+
+  var fb = document.getElementById('diagFeedback');
+
+  if (idx === datos.correcta) {
+    btn.classList.add('correct');
+    fb.textContent = '✅ ' + datos.feedback_ok;
+    fb.className = 'diagnostico-feedback show ok';
+    if (state.voiceActive) speak(datos.feedback_ok);
+    setTimeout(function() {
+      cerrarDiagnostico();
+      confirmarAccesoRapido(datos.nivelDestino);
+    }, 2500);
+  } else {
+    // NUNCA se marca la correcta — solo orientación
+    btn.classList.add('wrong');
+    fb.textContent = '❌ ' + datos.feedback_err;
+    fb.className = 'diagnostico-feedback show err';
+    if (state.voiceActive) speak(datos.feedback_err);
+
+    if (diagIntentoActual === 0) {
+      // Hay segunda oportunidad con pregunta diferente
+      diagIntentoActual = 1;
+      setTimeout(function() {
+        cargarPreguntaDiag(diagNivelActual, 1);
+      }, 3000);
+    } else {
+      // Segundo fallo — cierra y empieza desde Despegue
+      setTimeout(function() {
+        cerrarDiagnostico();
+        updateAlma('No te preocupes. Empecemos desde Despegue para afianzar bien las bases. ¡Adelante!');
+        if (state.voiceActive) speak('No te preocupes. Empecemos desde Despegue para afianzar bien las bases.');
+      }, 3500);
+    }
+  }
+}
+
+function cerrarDiagnostico() {
+  document.getElementById('diagnosticoOverlay').classList.remove('show');
+}
+
+function confirmarAccesoRapido(nivel) {
+  document.getElementById('accesoRapido').style.display = 'none';
+  if (nivel === 'experto') {
+    state.expertoUnlocked = true;
+    state.skipUnlock = true;
+    // Contar los 3 retos de Despegue como completados para la barra
+    state.completados = 3;
+    document.getElementById('chipFacil').className = 'level-chip done';
+    document.getElementById('chipExperto').className = 'level-chip active';
+    updateAlma('¡Demostrado! Directo a Órbita. Los números no tienen secretos para ti.');
+    startGame(3);
+  } else {
+    state.expertoUnlocked = true;
+    state.genioUnlocked = true;
+    state.skipUnlock = true;
+    // Contar los 6 retos de Despegue+Órbita como completados
+    state.completados = 6;
+    document.getElementById('chipFacil').className = 'level-chip done';
+    document.getElementById('chipExperto').className = 'level-chip done';
+    document.getElementById('chipGenio').className = 'level-chip active';
+    updateAlma('¡Demostrado! Directo a Galaxia. ¡Esto ya es nivel espacial!');
+    startGame(6);
+  }
+}
+
+function startGame(fromIndex) {
+  state.retoIndex = fromIndex;
+  state.fase = 'jugando';
+  var card = document.getElementById('retoCard');
+  card.style.display = 'block';
+  card.style.visibility = 'visible';
+  card.style.opacity = '1';
+  document.getElementById('accesoRapido').style.display = 'none';
+  updateProgress();
+  setTimeout(function() { loadReto(); }, 50);
+}
+
+// ═══════════════════════════════════════
+// CARGAR RETO
+// ═══════════════════════════════════════
+function loadReto() {
+  var reto = retos[state.retoIndex];
+  if (!reto) {
+    // Fin de retos normales — ¿hay pendientes?
+    if (state.pendientes.length > 0) {
+      iniciarRepaso();
+    } else {
+      showVictory();
+    }
+    return;
+  }
+
+  // unlock screens — solo se muestran una vez por nivel
+  if (state.retoIndex === 3 && !state.expertoUnlocked) {
+    showUnlock('experto');
+    return;
+  }
+  if (state.retoIndex === 6 && !state.genioUnlocked) {
+    showUnlock('genio');
+    return;
+  }
+
+  // Ocultar banner de repaso en retos normales
+  document.getElementById('repasoBanner').classList.remove('show');
+
+  document.getElementById('retoBadge').textContent = (reto.nivelLabel || reto.nivel);
+  document.getElementById('retoBadge').style.setProperty('--level-color', reto.levelColor);
+  document.getElementById('retoCard').style.setProperty('--level-color', reto.levelColor);
+  document.getElementById('retoNum').textContent = String(state.retoIndex + 1).padStart(2, '0');
+  document.getElementById('retoQuestion').textContent = reto.question;
+
+  var subLabel = document.getElementById('retoSubLabel');
+  subLabel.textContent = reto.subLabel;
+
+  document.getElementById('feedbackBox').classList.remove('show', 'ok', 'err');
+  document.getElementById('btnNext').classList.remove('show');
+  document.getElementById('curiosityBox').classList.remove('show');
+  document.getElementById('almaHint').classList.remove('show');
+
+  state.intentoActual = 0;
+
+  if (reto.type === 'opcion') {
+    document.getElementById('optionsGrid').style.display = 'grid';
+    document.getElementById('inputRow').style.display = 'none';
+    renderOpciones(reto);
+  } else {
+    document.getElementById('optionsGrid').style.display = 'none';
+    document.getElementById('inputRow').style.display = 'flex';
+    var inp = document.getElementById('textInput');
+    inp.value = '';
+    inp.className = 'text-input';
+    inp.onkeydown = function(e) {
+      if (e.key === 'Enter') {
+        var btn = document.getElementById('btnNext');
+        if (btn && btn.classList.contains('show')) { nextReto(); }
+        else { checkInput(); }
+      }
+    };
+    inp.focus();
+  }
+
+  updateAlmaForReto(reto);
+  updateProgressDots();
+  voiceInputPendiente = null; // limpiar confirmación pendiente
+  if (state.voiceActive) {
+    // Pequeña pausa para que el DOM se estabilice antes de leer
+    setTimeout(function() { leerRetoCompleto(reto); }, 200);
+  }
+}
+
+function renderOpciones(reto) {
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  reto.opciones.forEach((op, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = op;
+    btn.setAttribute('aria-label', 'Opción ' + (i+1) + ' de ' + reto.opciones.length + ': ' + op);
+    btn.setAttribute('tabindex', '0');
+    btn.onclick = () => checkOpcion(i, reto, btn);
+    grid.appendChild(btn);
+  });
+  // Teclado numérico 1-4 para seleccionar opción
+  grid._keyHandler && document.removeEventListener('keydown', grid._keyHandler);
+  grid._keyHandler = function(e) {
+    if (document.getElementById('optionsGrid').style.display === 'none') return;
+    var idx = parseInt(e.key) - 1;
+    if (idx >= 0 && idx < reto.opciones.length) {
+      e.preventDefault();
+      var btns = document.querySelectorAll('.option-btn');
+      if (btns[idx] && !btns[idx].disabled) btns[idx].click();
+    }
+    // R = repetir pregunta + opciones
+    if (e.key === 'r' || e.key === 'R') {
+      e.preventDefault();
+      speak(reto.question);
+      setTimeout(function() {
+        var textoOpciones = reto.opciones.map(function(op, i) { return 'Opción ' + (i+1) + ': ' + op; }).join('. ');
+        speak(textoOpciones);
+      }, 1200);
+    }
+  };
+  document.addEventListener('keydown', grid._keyHandler);
+}
+
+// ═══════════════════════════════════════
+// CHECKEAR RESPUESTAS
+// ═══════════════════════════════════════
+function checkOpcion(idx, reto, btn) {
+  var allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(function(b) { b.disabled = true; });
+  var correct = idx === reto.correcta;
+
+  if (correct) {
+    btn.classList.add('correct');
+    showFeedback(true, reto.feedback_ok);
+    completeReto(reto);
+  } else {
+    btn.classList.add('wrong');
+    allBtns[reto.correcta].classList.add('correct');
+    state.intentoActual++;
+
+    if (state.intentoActual === 1) {
+      // Intento 1: solo pista pequeña de Alma (sin caja roja)
+      mostrarHint(reto.pista1 || reto.feedback_err);
+      // Re-habilitar botones para que pueda intentarlo de nuevo
+      setTimeout(function() {
+        allBtns.forEach(function(b) {
+          b.disabled = false;
+          b.classList.remove('wrong', 'correct');
+        });
+      }, 4500);
+    } else {
+      // Intento 2: solo pista grande (sin caja roja) → avanza marcado como pendiente
+      mostrarHint(reto.pista2 || reto.feedback_err);
+      setTimeout(function() {
+        marcarPendiente();
+      }, 4000);
+    }
+  }
+  if (state.voiceActive) {
+    window.speechSynthesis.cancel();
+    speak(correct ? reto.feedback_ok : reto.feedback_err);
+  }
+  if (document.getElementById('btnNext').classList.contains('show')) return;
+  var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
+  var inp = document.getElementById('textInput');
+  var val = inp.value.trim().toLowerCase().replace(/\s+/g, ' ');
+  var correct = reto.correctas.some(function(c) {
+    return val === c.toLowerCase() || val === c.toLowerCase().replace(/\./g, '');
+  });
+
+  inp.className = 'text-input ' + (correct ? 'correct' : 'wrong');
+
+  if (correct) {
+    showFeedback(true, reto.feedback_ok);
+    if (state.enRepaso) {
+      completeRepasoReto(reto);
+    } else {
+      completeReto(reto);
+    }
+  } else {
+    state.intentoActual++;
+
+    if (state.enRepaso) {
+      // Lógica especial de repaso
+      manejarErrorRepaso(reto, inp);
+    } else if (state.intentoActual === 1) {
+      // Intento 1: solo pista pequeña (sin caja roja)
+      mostrarHint(reto.pista1 || reto.feedback_err);
+      setTimeout(function() {
+        inp.className = 'text-input';
+        inp.value = '';
+        inp.focus();
+      }, 4500);
+    } else {
+      // Intento 2: solo pista grande (sin caja roja) → pendiente
+      mostrarHint(reto.pista2 || reto.feedback_err);
+      setTimeout(function() {
+        marcarPendiente();
+      }, 4000);
+    }
+  }
+  if (state.voiceActive) {
+    window.speechSynthesis.cancel();
+    speak(correct ? reto.feedback_ok : reto.feedback_err);
+  }
+}
+
+function checkInput() {
+  if (document.getElementById('btnNext').classList.contains('show')) return;
+  var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
+  var inp = document.getElementById('textInput');
+  var val = inp.value.trim().toLowerCase().replace(/\s+/g, ' ');
+  var correct = reto.correctas.some(function(c) {
+    return val === c.toLowerCase() || val === c.toLowerCase().replace(/\./g, '');
+  });
+
+  inp.className = 'text-input ' + (correct ? 'correct' : 'wrong');
+
+  if (correct) {
+    showFeedback(true, reto.feedback_ok);
+    if (state.enRepaso) {
+      completeRepasoReto(reto);
+    } else {
+      completeReto(reto);
+    }
+  } else {
+    state.intentoActual++;
+    if (state.enRepaso) {
+      manejarErrorRepaso(reto, inp);
+    } else if (state.intentoActual === 1) {
+      mostrarHint(reto.pista1 || reto.feedback_err);
+      setTimeout(function() {
+        inp.className = 'text-input';
+        inp.value = '';
+        inp.focus();
+      }, 4500);
+    } else {
+      mostrarHint(reto.pista2 || reto.feedback_err);
+      setTimeout(function() { marcarPendiente(); }, 4000);
+    }
+  }
+  if (state.voiceActive) {
+    window.speechSynthesis.cancel();
+    speak(correct ? reto.feedback_ok : reto.feedback_err);
+  }
+}
+
+function mostrarHint(texto) {
+  var hint = document.getElementById('almaHint');
+  document.getElementById('almaHintText').textContent = texto;
+  hint.classList.add('show');
+  if (state.voiceActive) setTimeout(function() { speak('Pista: ' + texto); }, 600);
+}
+
+function marcarPendiente() {
+  var idx = state.retoIndex;
+  if (state.pendientes.indexOf(idx) === -1) {
+    state.pendientes.push(idx);
+  }
+  updateProgressDots();
+  updateAlma('No te preocupes, ¡al final lo repasamos juntos! Seguimos con el siguiente reto.');
+  // Deshabilitar input mientras esperamos
+  var inp = document.getElementById('textInput');
+  if (inp) inp.disabled = true;
+  // Avanzar automáticamente tras 2.5s — no necesita botón
+  setTimeout(function() {
+    if (inp) inp.disabled = false;
+    state.retoIndex++;
+    document.getElementById('almaHint').classList.remove('show');
+    document.getElementById('feedbackBox').classList.remove('show', 'ok', 'err');
+    loadReto();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 4000);
+}
+
+// ═══════════════════════════════════════
+// REPASO FINAL
+// ═══════════════════════════════════════
+function iniciarRepaso() {
+  state.enRepaso = true;
+  state.fase = 'repaso';
+  state.repasoQueue = state.pendientes.slice(); // copia
+  cargarRepasoReto();
+}
+
+function cargarRepasoReto() {
+  if (state.repasoQueue.length === 0) {
+    showVictory();
+    return;
+  }
+
+  var idx = state.repasoQueue[0];
+  var reto = retos[idx];
+  state.intentoRepaso = 0;
+
+  // Banner de repaso
+  var banner = document.getElementById('repasoBanner');
+  var total = state.pendientes.length;
+  var posicion = total - state.repasoQueue.length + 1;
+  document.getElementById('repasoBannerSub').textContent =
+    'Reto ' + posicion + ' de ' + total + ' pendientes. ¡Con las pistas ya tienes ventaja!';
+  banner.classList.add('show');
+
+  // Cargar el reto
+  document.getElementById('retoBadge').textContent = (reto.nivelLabel || reto.nivel);
+  document.getElementById('retoBadge').style.setProperty('--level-color', reto.levelColor);
+  document.getElementById('retoCard').style.setProperty('--level-color', reto.levelColor);
+  document.getElementById('retoNum').textContent = String(idx + 1).padStart(2, '0');
+  document.getElementById('retoQuestion').textContent = reto.question;
+  document.getElementById('retoSubLabel').textContent = reto.subLabel;
+
+  document.getElementById('feedbackBox').classList.remove('show', 'ok', 'err');
+  document.getElementById('btnNext').classList.remove('show');
+  document.getElementById('curiosityBox').classList.remove('show');
+  // En el repaso mostramos pista1 desde el principio
+  mostrarHint(reto.pista1 || reto.feedback_err);
+
+  if (reto.type === 'opcion') {
+    document.getElementById('optionsGrid').style.display = 'grid';
+    document.getElementById('inputRow').style.display = 'none';
+    renderOpcionesRepaso(reto);
+  } else {
+    document.getElementById('optionsGrid').style.display = 'none';
+    document.getElementById('inputRow').style.display = 'flex';
+    var inp = document.getElementById('textInput');
+    inp.value = '';
+    inp.className = 'text-input';
+    inp.onkeydown = function(e) {
+      if (e.key === 'Enter') {
+        var btn = document.getElementById('btnNext');
+        if (btn && btn.classList.contains('show')) { nextReto(); }
+        else { checkInput(); }
+      }
+    };
+    inp.focus();
+  }
+
+  updateAlma('Este reto se te resistió antes. ¡Ahora tienes una pista para ayudarte. Vamos!');
+  voiceInputPendiente = null;
+  if (state.voiceActive) {
+    setTimeout(function() { leerRetoCompleto(reto); }, 200);
+  }
+}
+
+function renderOpcionesRepaso(reto) {
+  var grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  reto.opciones.forEach(function(op, i) {
+    var btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = op;
+    btn.setAttribute('aria-label', 'Opción ' + (i+1) + ' de ' + reto.opciones.length + ': ' + op);
+    btn.setAttribute('tabindex', '0');
+    btn.onclick = function() { checkOpcionRepaso(i, reto, btn); };
+    grid.appendChild(btn);
+  });
+}
+
+function checkOpcionRepaso(idx, reto, btn) {
+  var allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(function(b) { b.disabled = true; });
+  var correct = idx === reto.correcta;
+
+  if (correct) {
+    btn.classList.add('correct');
+    showFeedback(true, reto.feedback_ok);
+    completeRepasoReto(reto);
+  } else {
+    btn.classList.add('wrong');
+    state.intentoRepaso++;
+    manejarErrorRepasoOpcion(reto, allBtns);
+  }
+}
+
+function manejarErrorRepasoOpcion(reto, allBtns) {
+  if (state.intentoRepaso === 1) {
+    // Primer fallo en repaso: mostrar pista grande y dar otro intento
+    showFeedback(false, reto.feedback_err);
+    mostrarHint(reto.pista2 || reto.feedback_err);
+    setTimeout(function() {
+      allBtns.forEach(function(b) {
+        b.disabled = false;
+        b.classList.remove('wrong', 'correct');
+      });
+      document.getElementById('feedbackBox').classList.remove('show', 'ok', 'err');
+    }, 4000);
+  } else {
+    // Segundo fallo en repaso: mostrar respuesta correcta y cerrar
+    allBtns[reto.correcta].classList.add('correct');
+    showFeedback(false, reto.feedback_err);
+    mostrarHint('La respuesta correcta era: ' + reto.opciones[reto.correcta] + '. ¡La proxima vez seguro que la tienes!');
+    setTimeout(function() {
+      finalizarRepasoReto();
+    }, 4500);
+  }
+}
+
+function manejarErrorRepaso(reto, inp) {
+  if (state.intentoRepaso === 0) {
+    // Primer fallo en repaso: mostrar pista grande
+    showFeedback(false, reto.feedback_err);
+    mostrarHint(reto.pista2 || reto.feedback_err);
+    state.intentoRepaso++;
+    setTimeout(function() {
+      inp.className = 'text-input';
+      inp.value = '';
+      document.getElementById('feedbackBox').classList.remove('show', 'ok', 'err');
+      inp.focus();
+    }, 4000);
+  } else {
+    // Segundo fallo: mostrar respuesta y cerrar
+    showFeedback(false, reto.feedback_err);
+    mostrarHint('La respuesta correcta era: ' + reto.correctas[0] + '. ¡La próxima vez seguro que la tienes!');
+    setTimeout(function() {
+      finalizarRepasoReto();
+    }, 4500);
+  }
+}
+
+function completeRepasoReto(reto) {
+  var idx = state.repasoQueue.shift();
+  var pos = state.pendientes.indexOf(idx);
+  if (pos !== -1) state.pendientes.splice(pos, 1);
+  state.completados++;
+  updateProgress();
+  throwStars();
+  setTimeout(function() {
+    document.getElementById('btnNext').classList.add('show');
+  }, 800);
+}
+
+function finalizarRepasoReto() {
+  // Reto de repaso cerrado sin superar
+  state.repasoQueue.shift();
+  showNext();
+}
+
+function completeReto(reto) {
+  state.completados++;
+  state.aciertosNivel++;
+  updateProgress();
+  throwStars();
+  // Sin curiosidad por reto — aparece al pasar de nivel
+  setTimeout(function() {
+    document.getElementById('btnNext').classList.add('show');
+  }, 800);
+}
+
+function showFeedback(ok, text) {
+  var box = document.getElementById('feedbackBox');
+  box.textContent = (ok ? '✅ ' : '❌ ') + text;
+  box.className = 'feedback-box show ' + (ok ? 'ok' : 'err');
+}
+
+function showNext() {
+  document.getElementById('btnNext').classList.add('show');
+}
+
+function showCuriosity(text) {
+  var box = document.getElementById('curiosityBox');
+  document.getElementById('curiosityText').textContent = text;
+  box.classList.add('show');
+  if (state.voiceActive) setTimeout(function() { speak('Curiosidad de Alma: ' + text); }, 800);
+  // El botón Siguiente aparece después para que la curiosidad sea lo primero
+  setTimeout(function() {
+    document.getElementById('btnNext').classList.add('show');
+  }, 4000);
+}
+
+function nextReto() {
+  document.getElementById('almaHint').classList.remove('show');
+  if (state.enRepaso) {
+    cargarRepasoReto();
+  } else {
+    state.retoIndex++;
+    loadReto();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════
+// CURIOSIDADES DE NIVEL
+// ═══════════════════════════════════════
+var curiosidadesNivel = {
+  experto: {
+    emoji: '🤯',
+    texto: '¿Sabías que los números que acabas de ordenar y comparar son exactamente los que usa un GPS para calcular tu ruta? Cada segundo, el navegador del coche de tu familia compara <strong>miles de números</strong> para elegir el camino más corto. ¡Y lo hace en menos tiempo del que tardas en parpadear!'
+  },
+  genio: {
+    emoji: '🚀',
+    texto: '¡Lo que acabas de hacer — descomponer y recomponer números — es exactamente lo que hace un ordenador por dentro! Cada foto, cada canción, cada vídeo que ves en una pantalla no es más que <strong>millones de números descompuestos en unos y ceros</strong>. Acabas de pensar como una computadora.'
+  },
+  victoria: {
+    emoji: '⚙️',
+    texto: '¿Sabes cuántos números ha procesado tu cerebro en esta sesión? Más de <strong>500 operaciones distintas</strong>. Los matemáticos que trabajan en misiones espaciales hacen exactamente esto: ordenar, comparar y descomponer números para que los cohetes lleguen a su destino. Hoy has pensado como ellos.'
+  }
+};
+
+var nivelCuriosidadPendiente = null; // 'experto' | 'genio' | null
+
+function mostrarNivelCuriosidad(nivel) {
+  var datos = curiosidadesNivel[nivel];
+  nivelCuriosidadPendiente = nivel;
+  document.getElementById('nivelCuriosidadEmoji').textContent = datos.emoji;
+  document.getElementById('nivelCuriosidadText').innerHTML = datos.texto;
+  document.getElementById('retoCard').style.display = 'none';
+  document.getElementById('curiosityBox').classList.remove('show');
+  document.getElementById('nivelCuriosidad').classList.add('show');
+  throwStars(8);
+  if (state.voiceActive) {
+    var textoPlano = datos.texto.replace(/<[^>]+>/g, '');
+    speak(textoPlano);
+  }
+}
+
+function continuarDesdeNivelCuriosidad() {
+  var nivel = nivelCuriosidadPendiente;
+  nivelCuriosidadPendiente = null;
+  document.getElementById('nivelCuriosidad').classList.remove('show');
+  if (nivel === 'victoria') {
+    mostrarPantallaVictoria();
+  } else {
+    mostrarPantallaUnlock(nivel);
+  }
+}
+
+// ═══════════════════════════════════════
+// UNLOCK SCREENS
+// ═══════════════════════════════════════
+function showUnlock(nivel) {
+  // ── Comprobar mínimo 2 de 3 ──
+  if (state.aciertosNivel < 2) {
+    retos = pickNextSet();
+    state.retoIndex = nivel === 'experto' ? 0 : 3;
+    state.aciertosNivel = 0;
+    updateAlma('¡Casi! Necesitas acertar al menos 2 de 3 para pasar. Te pongo preguntas nuevas. ¡Tú puedes!');
+    if (state.voiceActive) speak('¡Casi! Necesitas acertar al menos 2 de 3. ¡A por ello con preguntas nuevas!');
+    loadReto();
+    return;
+  }
+  // ── Superado — mostrar primero la curiosidad de nivel ──
+  state.aciertosNivel = 0;
+  mostrarNivelCuriosidad(nivel);
+}
+
+function mostrarPantallaUnlock(nivel) {
+  var screen = document.getElementById('unlockScreen');
+  if (nivel === 'experto') {
+    document.getElementById('unlockTitle').textContent = '🌙 ÓRBITA DESBLOQUEADA';
+    document.getElementById('unlockSubtitle').textContent = '¡Despegue superado! Has dominado los números por fuera. Ahora en Órbita los verás por dentro. ¡A descomponer!';
+    document.getElementById('unlockGear').textContent = '🌙';
+    document.getElementById('chipExperto').className = 'level-chip active';
+    state.expertoUnlocked = true;
+  } else {
+    document.getElementById('unlockTitle').textContent = '🌟 GALAXIA DESBLOQUEADA 🌟';
+    document.getElementById('unlockSubtitle').textContent = '¡Órbita completada! La Galaxia es para quienes quieren ver la magia detrás de las cifras. ¿Te atreves?';
+    document.getElementById('unlockGear').textContent = '🌟';
+    document.getElementById('chipGenio').className = 'level-chip active';
+    state.genioUnlocked = true;
+  }
+  screen.classList.add('show');
+  updateAlma(document.getElementById('unlockSubtitle').textContent);
+  if (state.voiceActive) speak(document.getElementById('unlockSubtitle').textContent);
+  throwStars(12);
+  celebrate();
+}
+
+function continueAfterUnlock() {
+  document.getElementById('unlockScreen').classList.remove('show');
+  document.getElementById('retoCard').style.display = 'block';
+  loadReto();
+}
+
+// ═══════════════════════════════════════
+// VICTORIA
+// ═══════════════════════════════════════
+function showVictory() {
+  state.fase = 'victoria';
+  document.getElementById('retoCard').style.display = 'none';
+  document.getElementById('repasoBanner').classList.remove('show');
+  document.getElementById('unlockScreen').classList.remove('show');
+  document.getElementById('chipFacil').className = 'level-chip done';
+  document.getElementById('chipExperto').className = 'level-chip done';
+  document.getElementById('chipGenio').className = 'level-chip done';
+
+  var stars = state.completados >= 9 ? '⭐⭐⭐' : state.completados >= 6 ? '⭐⭐' : '⭐';
+  document.getElementById('logroStars').textContent = stars;
+
+  // Mostrar curiosidad de victoria antes de la pantalla final
+  mostrarNivelCuriosidad('victoria');
+  // La pantalla de victoria se muestra al pulsar el botón de la curiosidad
+  nivelCuriosidadPendiente = 'victoria';
+}
+
+function mostrarPantallaVictoria() {
+  document.getElementById('nivelCuriosidad').classList.remove('show');
+  var vtxt = '¡Misión completada! Ya eres Ingeniera de Números. Has pasado por Despegue, Órbita y Galaxia. Los números no tienen secretos para ti. ¡Guarda este logro!';
+  document.getElementById('victorySubtitle').textContent = vtxt;
+  document.getElementById('victoryScreen').classList.add('show');
+  updateAlma(vtxt);
+  if (state.voiceActive) speak(vtxt);
+  throwStars(20);
+  updateProgress();
+  celebrate();
+}
+
+function askRestart() {
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function cancelRestart() {
+  document.getElementById('confirmOverlay').classList.remove('show');
+}
+function confirmRestart() {
+  document.getElementById('confirmOverlay').classList.remove('show');
+  restartGame();
+}
+function restartGame() {
+  var prevRetos = retos;
+  do { retos = pickRandomSet(); } while (retos === prevRetos && retosSets.length > 1);
+
+  state = {
+    retoIndex: 0, completados: 0, intentoActual: 0, fase: 'acceso',
+    expertoUnlocked: false, genioUnlocked: false, aciertosNivel: 0,
+    skipUnlock: false, voiceActive: state.voiceActive, voiceQueue: [],
+    pendientes: [], enRepaso: false, repasoQueue: [], intentoRepaso: 0
+  };
+  document.getElementById('victoryScreen').classList.remove('show');
+  document.getElementById('retoCard').style.display = 'none';
+  document.getElementById('repasoBanner').classList.remove('show');
+  document.getElementById('accesoRapido').style.display = 'block';
+  document.getElementById('chipFacil').className = 'level-chip active';
+  document.getElementById('chipExperto').className = 'level-chip locked';
+  document.getElementById('chipGenio').className = 'level-chip locked';
+  updateProgress();
+  updateAlma('¡De vuelta a la fábrica! Esta vez los números serán distintos. ¿Lista o listo para un nuevo reto?');
+}
+
+// ═══════════════════════════════════════
+// HELPERS UI
+// ═══════════════════════════════════════
+function updateProgress() {
+  var total = retos.length; // siempre 9
+  var pct = (state.completados / total) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressBar').setAttribute('aria-valuenow', state.completados);
+  document.getElementById('progressBar').setAttribute('aria-label', 'Progreso: ' + state.completados + ' de ' + total + ' retos completados');
+  document.getElementById('progressCount').textContent = state.completados + ' / ' + total + ' retos';
+
+  // Mover el cohete
+  var bg = document.getElementById('progressBarBg');
+  var rocket = document.getElementById('progressRocket');
+  if (bg && rocket) {
+    var bgWidth = bg.offsetWidth;
+    var rocketLeft = (pct / 100) * bgWidth;
+    rocketLeft = Math.max(0, Math.min(rocketLeft, bgWidth - 20));
+    rocket.style.left = rocketLeft + 'px';
+  }
+
+  // Planeta brilla al llegar al 100%
+  if (pct >= 100) {
+    var planet = document.getElementById('progressPlanet');
+    if (planet) planet.classList.add('reached');
+  }
+
+  updateProgressDots();
+}
+
+function updateProgressDots() {
+  var container = document.getElementById('progressDots');
+  if (!container) return;
+  container.innerHTML = '';
+  var total = retos.length;
+
+  // Calcular cuántos retos se saltaron al inicio
+  var saltados = state.skipUnlock ? (state.genioUnlocked ? 6 : state.expertoUnlocked ? 3 : 0) : 0;
+
+  for (var i = 0; i < total; i++) {
+    var dot = document.createElement('div');
+    dot.className = 'progress-dot';
+
+    if (state.pendientes.indexOf(i) !== -1) {
+      dot.className += ' pending';
+      dot.title = 'Reto ' + (i + 1) + ': pendiente de repaso';
+    } else if (i < saltados) {
+      // Retos saltados cuentan como completados visualmente
+      dot.className += ' done';
+      dot.title = 'Reto ' + (i + 1) + ': nivel superado';
+    } else if (i < state.retoIndex || (state.fase === 'victoria')) {
+      dot.className += ' done';
+      dot.title = 'Reto ' + (i + 1) + ': completado';
+    }
+    container.appendChild(dot);
+  }
+}
+
+function updateAlma(text) {
+  const el = document.getElementById('almaText');
+  el.style.opacity = 0;
+  setTimeout(() => {
+    el.textContent = text;
+    el.style.opacity = 1;
+  }, 200);
+}
+
+function updateAlmaForReto(reto) {
+  const msgs = {
+    0: '🚀 ¡Despegue iniciado! Lee el número y escríbelo en cifras. ¡Tú puedes!',
+    1: 'Cada cifra tiene su lugar. ¿Cuál es el valor de las centenas?',
+    2: 'Ordenar números es como decidir quién va primero en la cola del recreo.',
+    3: '🌙 ¡Órbita alcanzada! Ahora construyes números a partir de sus piezas.',
+    4: 'El cero también cuenta. No lo olvides al descomponer.',
+    5: 'Estimar es una superpotencia. No necesitas el número exacto, solo el más cercano.',
+    6: '🌟 ¡Galaxia! Esto ya es matemáticas de nivel espacial. ¿A por ello?',
+    7: 'Dos pasos: suma primero, luego resta. Tómate tu tiempo.',
+    8: 'Último reto de la misión. ¡Demuestra que eres Ingeniera de Números!'
+  };
+  updateAlma(msgs[state.retoIndex] || '¡Vamos allá!');
+}
+
+// ═══════════════════════════════════════
+// VOZ — sistema completo con cola y modo auditivo
+// ═══════════════════════════════════════
+
+// Niveles donde ya se ha presentado la "palabra mágica repite"
+var nivelMagicaVisto = { facil: false, experto: false, genio: false };
+
+// Estado del input por voz
+var voiceInputPendiente = null; // número convertido esperando confirmación
+
+function toggleVoice() {
+  state.voiceActive = !state.voiceActive;
+  document.getElementById('btnVoice').setAttribute('aria-pressed', state.voiceActive ? 'true' : 'false');
+  var ind = document.getElementById('voiceIndicator');
+  var btnGrande = document.getElementById('btnActivarVoz');
+
+  if (state.voiceActive) {
+    ind.classList.add('show');
+    if (btnGrande) btnGrande.style.display = 'none';
+    // Leer bienvenida completa — arrancar recognition solo cuando termine
+    var textoActual = limpiarParaVoz(document.getElementById('almaText').textContent);
+    speakQueue([
+      textoActual,
+      'Recuerda: si necesitas que lo repita, di la palabra mágica: repite.',
+      'También puedes decir: siguiente para avanzar, ayuda para saber qué hacer, o el número de tu respuesta.'
+    ], 0.52, function() {
+      iniciarRecognition(); // arranca escucha solo cuando Alma termina de hablar
+    });
+  } else {
+    ind.classList.remove('show');
+    stopVoice();
+  }
+}
+
+function activarVozGrande() {
+  // Llamada desde el botón grande del acompañante
+  if (!state.voiceActive) toggleVoice();
+}
+
+function getSoftVoice() {
+  var voices = window.speechSynthesis.getVoices();
+  var preferred = ['Mónica', 'Monica'];
+  for (var i = 0; i < preferred.length; i++) {
+    var v = voices.find(function(v) { return v.name.includes(preferred[i]) && v.lang.startsWith('es'); });
+    if (v) return v;
+  }
+  var esVoice = voices.find(function(v) { return v.lang.startsWith('es') && !v.name.toLowerCase().includes('male'); });
+  if (esVoice) return esVoice;
+  return voices.find(function(v) { return v.lang.startsWith('es'); }) || null;
+}
+
+// ── DIAGNÓSTICO TEMPORAL ────────────────────────────────────────────────────
+function dbg(msg) {
+  var el = document.getElementById('debugLog');
+  if (!el) return;
+  var t = new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  el.innerHTML += t + ' · ' + msg + '<br>';
+  el.parentElement.scrollTop = el.parentElement.scrollHeight;
+}
+// ────────────────────────────────────────────────────────────────────────────
+
+// ── Cola de lectura: encadena textos sin solaparse ──────────────────────────
+function speakQueue(textos, rateOverride, onComplete) {
+  if (!state.voiceActive || !window.speechSynthesis) { dbg('speakQueue: voz inactiva o sin speechSynthesis'); return; }
+  window.speechSynthesis.cancel();
+  state._speakingLock = false; // reset lock al iniciar cola nueva
+  if (state.recognition) {
+    try { state.recognition.abort(); } catch(e) {}
+    state.recognition = null;
+  }
+  state.voiceQueue = textos.filter(function(t) { return t && t.trim(); }).slice();
+  dbg('speakQueue: ' + state.voiceQueue.length + ' textos en cola');
+  _speakNext(rateOverride || 0.58, onComplete);
+}
+
+function _speakNext(rate, onComplete) {
+  // ── Semáforo: evita ejecuciones paralelas ────────────────────────────────
+  if (state._speakingLock) { dbg('_speakNext: lock activo, ignorando llamada extra'); return; }
+  state._speakingLock = true;
+  // ─────────────────────────────────────────────────────────────────────────
+
+  if (!state.voiceActive || state.voiceQueue.length === 0) {
+    state._speakingLock = false;
+    dbg('_speakNext: cola vacía → llamando iniciarRecognition');
+    setTimeout(function() {
+      if (state.voiceActive) iniciarRecognition();
+      if (onComplete) onComplete();
+    }, 600);
+    return;
+  }
+  var text = state.voiceQueue.shift();
+  dbg('_speakNext: hablando "' + text.substring(0,40) + '..."');
+  var utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'es-ES';
+  utt.rate = rate || 0.58;
+  utt.pitch = 1.5;
+  utt.volume = 0.95;
+  var voz = getSoftVoice();
+  if (voz) utt.voice = voz;
+
+  // Chrome necesita un ping periódico para no congelarse en páginas activas
+  var pingInterval = setInterval(function() {
+    if (!window.speechSynthesis.speaking) { clearInterval(pingInterval); return; }
+    window.speechSynthesis.pause();
+    window.speechSynthesis.resume();
+  }, 10000);
+
+  utt.onend = function() {
+    dbg('utt.onend disparado ✓');
+    clearInterval(pingInterval);
+    state._speakingLock = false;
+    _speakNext(rate, onComplete);
+  };
+  utt.onerror = function(e) {
+    dbg('utt.onerror: ' + (e.error || 'desconocido'));
+    clearInterval(pingInterval);
+    state._speakingLock = false;
+    _speakNext(rate, onComplete);
+  };
+
+  if (!voz && window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.onvoiceschanged = function() {
+      var v = getSoftVoice();
+      if (v) utt.voice = v;
+      window.speechSynthesis.speak(utt);
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+    return;
+  }
+  window.speechSynthesis.speak(utt);
+}
+
+// speak() simple para mensajes únicos (feedback, pistas, etc.)
+function speak(text, rate) {
+  if (!state.voiceActive || !window.speechSynthesis) return;
+  // Parar recognition mientras Alma responde
+  if (state.recognition) {
+    try { state.recognition.abort(); } catch(e) {}
+    state.recognition = null;
+  }
+  speakQueue([text], rate || 0.58);
+}
+
+function stopVoice() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  state.voiceQueue = [];
+  if (state.recognition) { try { state.recognition.stop(); } catch(e){} }
+}
+
+// ── Limpiar emojis y símbolos para síntesis de voz ─────────────────────────
+function limpiarParaVoz(texto) {
+  return texto
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '') // emojis Unicode extendidos
+    .replace(/[\u2600-\u27BF]/g, '')          // símbolos misceláneos
+    .replace(/[\uFE00-\uFE0F]/g, '')          // variantes de presentación
+    .replace(/\s{2,}/g, ' ')                  // espacios dobles por el hueco del emoji
+    .trim();
+}
+
+// ── Lectura completa de un reto ─────────────────────────────────────────────
+function leerRetoCompleto(reto) {
+  if (!state.voiceActive || !reto) return;
+  var cola = [];
+
+  // Mensaje de Alma — sin emojis
+  cola.push(limpiarParaVoz(document.getElementById('almaText').textContent));
+
+  // Pequeña pausa narrativa
+  cola.push('Reto ' + (state.retoIndex + 1) + ' de 9.');
+
+  // Pregunta del reto
+  cola.push(reto.question);
+
+  if (reto.type === 'opcion') {
+    reto.opciones.forEach(function(op, i) {
+      var textoOpcion;
+      if (reto.leerOpcionesComoDigitos) {
+        var soloNumero = op.replace(/\./g, '');
+        textoOpcion = 'Opción ' + (i + 1) + ': ' + soloNumero.split('').map(function(d) {
+          return ['cero','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve'][parseInt(d)] || d;
+        }).join(', ') + '.';
+      } else {
+        textoOpcion = 'Opción ' + (i + 1) + ': ' + op + '.';
+      }
+      cola.push(textoOpcion);
+    });
+    cola.push('Di uno, dos, tres o cuatro para responder.');
+    var nivelKey = reto.nivel;
+    if (!nivelMagicaVisto[nivelKey]) {
+      nivelMagicaVisto[nivelKey] = true;
+      cola.push('Recuerda: si quieres que lo repita, di la palabra mágica: repite.');
+    } else {
+      cola.push('¿Quieres que lo repita? Di: repite.');
+    }
+  } else {
+    cola.push('Di el número en voz alta para responder.');
+    var nivelKey2 = reto.nivel;
+    if (!nivelMagicaVisto[nivelKey2]) {
+      nivelMagicaVisto[nivelKey2] = true;
+      cola.push('Recuerda: si quieres que lo repita, di la palabra mágica: repite.');
+    } else {
+      cola.push('¿Quieres que lo repita? Di: repite.');
+    }
+  }
+
+  speakQueue(cola, 0.50, function() {
+    iniciarRecognition();
+  });
+}
+
+// ── Repetir todo lo de la pantalla actual ──────────────────────────────────
+function repetirPantalla() {
+  if (!state.voiceActive) return;
+  if (state.fase === 'acceso') {
+    var textoAlma = limpiarParaVoz(document.getElementById('almaText').textContent);
+    speakQueue([textoAlma, 'Di empieza para comenzar, u órbita o galaxia para saltar de nivel. Di ayuda para más opciones.'], 0.52, function() {
+      iniciarRecognition();
+    });
+    return;
+  }
+  if (state.fase === 'jugando' || state.fase === 'repaso') {
+    var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
+    if (reto) { leerRetoCompleto(reto); return; }
+  }
+  // Fallback
+  speakQueue([limpiarParaVoz(document.getElementById('almaText').textContent)], 0.52, function() {
+    iniciarRecognition();
+  });
+}
+
+// ── Convertir número hablado a cifra ───────────────────────────────────────
+function habladoACifra(transcript) {
+  // Primero intentar si ya es un número directo
+  var limpio = transcript.replace(/\./g, '').replace(/,/g, '').trim();
+  var directo = parseInt(limpio);
+  if (!isNaN(directo) && String(directo) === limpio) return directo;
+
+  // Dígitos separados: "cuatro nueve cero cero" → 4900
+  var digitosMap = {'cero':0,'uno':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,'seis':6,'siete':7,'ocho':8,'nueve':9,
+                    'zero':0,'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9};
+  var palabras = transcript.trim().split(/\s+/);
+  var todoDigitos = palabras.every(function(p) { return digitosMap[p] !== undefined || !isNaN(parseInt(p)); });
+  if (todoDigitos && palabras.length >= 2) {
+    var cifra = palabras.map(function(p) {
+      return digitosMap[p] !== undefined ? digitosMap[p] : parseInt(p);
+    }).join('');
+    return parseInt(cifra);
+  }
+
+  // Número hablado natural en español
+  var unidades = {'cero':0,'uno':1,'una':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,'seis':6,'siete':7,'ocho':8,'nueve':9};
+  var especiales = {'diez':10,'once':11,'doce':12,'trece':13,'catorce':14,'quince':15,'dieciséis':16,'dieciseis':16,
+    'diecisiete':17,'dieciocho':18,'diecinueve':19,'veinte':20,'veintiuno':21,'veintidós':22,'veintidos':22,
+    'veintitrés':23,'veintitres':23,'veinticuatro':24,'veinticinco':25,'veintiséis':26,'veintiseis':26,
+    'veintisiete':27,'veintiocho':28,'veintinueve':29};
+  var decenas = {'treinta':30,'cuarenta':40,'cincuenta':50,'sesenta':60,'setenta':70,'ochenta':80,'noventa':90};
+  var centenas = {'cien':100,'ciento':100,'doscientos':200,'doscientas':200,'trescientos':300,'trescientas':300,
+    'cuatrocientos':400,'cuatrocientas':400,'quinientos':500,'quinientas':500,'seiscientos':600,'seiscientas':600,
+    'setecientos':700,'setecientas':700,'ochocientos':800,'ochocientas':800,'novecientos':900,'novecientas':900};
+
+  var t = transcript.toLowerCase().trim();
+  var resultado = 0;
+  var miles = 0;
+
+  // Extraer miles
+  var matchMiles = t.match(/^(.*?)\s*mil\s*/);
+  if (matchMiles) {
+    var parteAntes = matchMiles[1].trim();
+    if (!parteAntes || parteAntes === 'un' || parteAntes === 'una') {
+      miles = 1000;
+    } else {
+      var mVal = unidades[parteAntes] || especiales[parteAntes] || parseInt(parteAntes);
+      miles = (isNaN(mVal) ? 0 : mVal) * 1000;
+    }
+    t = t.replace(matchMiles[0], '').trim();
+  }
+
+  // Parsear el resto
+  var resto = 0;
+  var palabrasResto = t.split(/\s+y\s+|\s+/);
+  palabrasResto.forEach(function(p) {
+    if (!p) return;
+    if (centenas[p] !== undefined) { resto += centenas[p]; return; }
+    if (especiales[p] !== undefined) { resto += especiales[p]; return; }
+    if (decenas[p] !== undefined) { resto += decenas[p]; return; }
+    if (unidades[p] !== undefined) { resto += unidades[p]; return; }
+    var n = parseInt(p);
+    if (!isNaN(n)) resto += n;
+  });
+
+  var total = miles + resto;
+  return total > 0 ? total : NaN;
+}
+
+// ── Convertir número a texto hablado natural ────────────────────────────────
+function cifraAHablado(n) {
+  if (isNaN(n)) return String(n);
+  if (n === 0) return 'cero';
+  var partes = [];
+  if (n >= 1000) {
+    var m = Math.floor(n / 1000);
+    partes.push(m === 1 ? 'mil' : cifraAHablado(m) + ' mil');
+    n = n % 1000;
+  }
+  if (n >= 100) {
+    var c = Math.floor(n / 100);
+    var centTexto = ['','cien','doscientos','trescientos','cuatrocientos','quinientos',
+                     'seiscientos','setecientos','ochocientos','novecientos'];
+    partes.push(n === 100 ? 'cien' : centTexto[c]);
+    n = n % 100;
+  }
+  if (n >= 20) {
+    var decTexto = ['','','veinte','treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
+    var d = Math.floor(n / 10);
+    var u = n % 10;
+    partes.push(u > 0 ? decTexto[d] + ' y ' + ['','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve'][u] : decTexto[d]);
+    n = 0;
+  } else if (n > 0) {
+    var uTexto = ['cero','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve',
+                  'diez','once','doce','trece','catorce','quince','dieciséis','diecisiete',
+                  'dieciocho','diecinueve'];
+    partes.push(uTexto[n] || String(n));
+  }
+  return partes.join(' ');
+}
+
+// ─── SPEECH RECOGNITION ────────────────────────────────────────────────────
+function mostrarAvisoMicrofono() {
+  var aviso = document.getElementById('avisoMicro');
+  if (aviso) aviso.classList.add('show');
+  // La síntesis sí funciona — usarla para explicar el problema
+  // Usamos speechSynthesis directamente (sin pasar por speak() que chequea state.voiceActive)
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+    var utt = new SpeechSynthesisUtterance(
+      'El micrófono no está disponible en este modo. Para usar comandos de voz, abre el archivo directamente en Chrome. La lectura en voz alta sí funciona.'
+    );
+    utt.lang = 'es-ES';
+    utt.rate = 0.58;
+    utt.pitch = 1.5;
+    utt.volume = 0.95;
+    var voz = getSoftVoice();
+    if (voz) utt.voice = voz;
+    window.speechSynthesis.speak(utt);
+  }
+}
+
+function iniciarRecognition() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    console.warn('SpeechRecognition no disponible en este navegador.');
+    return;
+  }
+
+  // Parar instancia anterior limpiamente
+  if (state.recognition) {
+    try { state.recognition.abort(); } catch(e){}
+    state.recognition = null;
+  }
+
+  function crearYArrancar() {
+    if (!state.voiceActive) { dbg('crearYArrancar: voiceActive=false, abortando'); return; }
+    // Semáforo: si ya hay una instancia activa o arrancando, no crear otra
+    if (state.recognition) { dbg('crearYArrancar: ya hay recognition activo, ignorando'); return; }
+    dbg('crearYArrancar: creando SpeechRecognition...');
+
+    var rec = new SR();
+    rec.lang = 'es-ES';
+    rec.continuous = false;   // false es más fiable — reiniciamos manualmente en onend
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    state.recognition = rec;
+
+    rec.onresult = function(e) {
+      var transcript = e.results[0][0].transcript.toLowerCase().trim();
+      dbg('🎤 VOZ detectada: "' + transcript + '"');
+      procesarComandoVoz(transcript);
+    };
+
+    rec.onerror = function(e) {
+      dbg('🎤 ERROR recognition: ' + e.error);
+      state.recognition = null;
+
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        // Permiso denegado — NO reintentar, es permanente
+        state.voiceActive = false;
+        document.getElementById('btnVoice').setAttribute('aria-pressed', 'false');
+        document.getElementById('voiceIndicator').classList.remove('show');
+        var btnGrande = document.getElementById('btnActivarVoz');
+        if (btnGrande) btnGrande.style.display = 'block';
+        mostrarAvisoMicrofono();
+        return;
+      }
+
+      // Para cualquier otro error transitorio: reintentar
+      if (state.voiceActive) {
+        setTimeout(crearYArrancar, 800);
+      }
+    };
+
+    rec.onend = function() {
+      dbg('🎤 recognition.onend — reiniciando...');
+      state.recognition = null;
+      // Reiniciar siempre que la voz siga activa
+      // Pequeña pausa para no solapar con síntesis
+      if (state.voiceActive) {
+        var delay = window.speechSynthesis.speaking ? 600 : 200;
+        setTimeout(crearYArrancar, delay);
+      }
+    };
+
+    try {
+      rec.start();
+      dbg('🎤 recognition.start() OK — escuchando');
+    } catch(e) {
+      dbg('🎤 ERROR en rec.start(): ' + e.message);
+      state.recognition = null;
+      if (state.voiceActive) setTimeout(crearYArrancar, 800);
+    }
+  }
+
+  // Si Alma está hablando, esperar a que termine antes de escuchar
+  if (window.speechSynthesis && window.speechSynthesis.speaking) {
+    var esperarFin = setInterval(function() {
+      if (!window.speechSynthesis.speaking) {
+        clearInterval(esperarFin);
+        setTimeout(crearYArrancar, 300);
+      }
+    }, 200);
+  } else {
+    setTimeout(crearYArrancar, 300);
+  }
+}
+
+function procesarComandoVoz(transcript) {
+  // ── 0. FASE ACCESO: pantalla de bienvenida ─────────────────────────────
+  if (state.fase === 'acceso') {
+    if (transcript.includes('repite') || transcript.includes('repetir') || transcript.includes('repita')) {
+      var textoAlma = limpiarParaVoz(document.getElementById('almaText').textContent);
+      speakQueue([textoAlma, '¿Quieres empezar desde el principio? Di: empieza. O di: ayuda para más opciones.'], 0.52, function() {
+        iniciarRecognition();
+      });
+      return;
+    }
+    if (transcript.includes('ayuda')) {
+      speakQueue([
+        'Estás en la pantalla de inicio de La Fábrica de Números.',
+        'Di: empieza, para comenzar desde el principio.',
+        'Di: órbita, para saltar directamente al nivel Órbita.',
+        'Di: galaxia, para saltar directamente al nivel Galaxia.',
+        'Di: repite, en cualquier momento para volver a escuchar.'
+      ]);
+      return;
+    }
+    if (transcript.includes('empieza') || transcript.includes('empezar') || transcript.includes('comenzar') || transcript.includes('inicio') || transcript.includes('siguiente') || transcript.includes('continuar')) {
+      speak('¡Vamos allá! Empezando desde el principio.');
+      setTimeout(function() { hideAcceso(); }, 900);
+      return;
+    }
+    if (transcript.includes('órbita') || transcript.includes('orbita')) {
+      speak('Abriendo la prueba de acceso a Órbita.');
+      setTimeout(function() { accesoRapido('experto'); }, 900);
+      return;
+    }
+    if (transcript.includes('galaxia')) {
+      speak('Abriendo la prueba de acceso a Galaxia.');
+      setTimeout(function() { accesoRapido('genio'); }, 900);
+      return;
+    }
+    // Cualquier otra cosa en acceso — recordar opciones
+    speak('Di empieza para comenzar, o di ayuda para escuchar las opciones.');
+    return;
+  }
+
+  // ── 1. PALABRA MÁGICA: repite ──────────────────────────────────────────
+  if (transcript.includes('repite') || transcript.includes('repetir') || transcript.includes('repita')) {
+    window.speechSynthesis.cancel();
+    state.voiceQueue = [];
+    voiceInputPendiente = null;
+    repetirPantalla();
+    return;
+  }
+
+  // ── 2. AYUDA ────────────────────────────────────────────────────────────
+  if (transcript.includes('ayuda')) {
+    var mensajeAyuda;
+    var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
+    if (reto && reto.type === 'opcion') {
+      mensajeAyuda = 'Escucha la pregunta y di uno, dos, tres o cuatro para elegir tu respuesta. Di repite para escuchar la pregunta de nuevo.';
+    } else if (reto && reto.type === 'input') {
+      mensajeAyuda = 'Escucha la pregunta y di el número de tu respuesta en voz alta. Por ejemplo, di cuatro mil novecientos. Di repite para escuchar la pregunta de nuevo.';
+    } else if (state.fase === 'victoria') {
+      mensajeAyuda = 'Has completado todos los retos. Di: volver a jugar, para empezar de nuevo.';
+    } else {
+      mensajeAyuda = 'Di repite para escuchar el contenido de nuevo. Di siguiente para avanzar cuando hayas acertado.';
+    }
+    speak(mensajeAyuda);
+    return;
+  }
+
+  // ── 3. SIGUIENTE / CONTINUAR ────────────────────────────────────────────
+  if (transcript.includes('siguiente') || transcript.includes('continuar') || transcript.includes('continúa')) {
+    var btnNext = document.getElementById('btnNext');
+    if (btnNext && btnNext.classList.contains('show')) {
+      speak('Muy bien, seguimos.');
+      setTimeout(function() { nextReto(); }, 800);
+    } else {
+      speak('Todavía no podemos seguir. Responde la pregunta primero. Di repite si quieres escucharla de nuevo.');
+    }
+    return;
+  }
+
+  // ── 4. CONFIRMACIÓN DE INPUT POR VOZ ───────────────────────────────────
+  if (voiceInputPendiente !== null) {
+    if (transcript.includes('sí') || transcript === 'si' || transcript.includes('correcto') || transcript.includes('confirmo')) {
+      // Confirmar — insertar en el input y enviar
+      var inp = document.getElementById('textInput');
+      if (inp && inp.style && document.getElementById('inputRow').style.display !== 'none') {
+        inp.value = String(voiceInputPendiente);
+        voiceInputPendiente = null;
+        speak('Enviando tu respuesta.');
+        setTimeout(function() { checkInput(); }, 600);
+      }
+      return;
+    }
+    if (transcript.includes('no') || transcript.includes('repite') || transcript.includes('mal')) {
+      voiceInputPendiente = null;
+      speak('De acuerdo. Di el número de nuevo.');
+      return;
+    }
+  }
+
+  // ── 5. OPCIONES 1-4 ────────────────────────────────────────────────────
+  if (document.getElementById('optionsGrid').style.display !== 'none') {
+    var mapaOpciones = {'uno':0,'dos':1,'tres':2,'cuatro':3,'one':0,'two':1,'three':2,'four':3,
+                        'primera':0,'segunda':1,'tercera':2,'cuarta':3,
+                        'opción uno':0,'opción dos':1,'opción tres':2,'opción cuatro':3};
+    var numDirect = parseInt(transcript) - 1;
+    var idxOpcion = (!isNaN(numDirect) && numDirect >= 0 && numDirect <= 3) ? numDirect : undefined;
+    if (idxOpcion === undefined) {
+      var primeraPalabra = transcript.split(' ')[0];
+      idxOpcion = mapaOpciones[primeraPalabra] !== undefined ? mapaOpciones[primeraPalabra] : mapaOpciones[transcript];
+    }
+    if (idxOpcion !== undefined && idxOpcion >= 0) {
+      var btns = document.querySelectorAll('.option-btn');
+      if (btns[idxOpcion] && !btns[idxOpcion].disabled) {
+        btns[idxOpcion].click();
+        return;
+      }
+    }
+  }
+
+  // ── 6. INPUT POR VOZ: número dictado ───────────────────────────────────
+  if (document.getElementById('inputRow').style.display !== 'none') {
+    var numero = habladoACifra(transcript);
+    if (!isNaN(numero) && numero > 0) {
+      var textoHablado = cifraAHablado(numero);
+      voiceInputPendiente = numero;
+      speak('Has dicho: ' + textoHablado + '. Di sí para confirmar, o repite para intentarlo de nuevo.');
+      return;
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+// MODALES
+// ═══════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('show');
+    stopVoice();
+  }
+});
+
+// ═══════════════════════════════════════
+
+// ═══════════════════════════════════════
+// COMPARTIR LOGRO — Canvas → imagen PNG
+// ═══════════════════════════════════════
+function shareLogro() {
+  var canvas = document.createElement('canvas');
+  canvas.width  = 800;
+  canvas.height = 480;
+  var ctx = canvas.getContext('2d');
+
+  // Fondo degradado
+  var grad = ctx.createLinearGradient(0, 0, 800, 480);
+  grad.addColorStop(0,   '#0a1628');
+  grad.addColorStop(1,   '#0e2040');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 800, 480);
+
+  // Borde dorado redondeado
+  ctx.strokeStyle = '#f5c842';
+  ctx.lineWidth   = 3;
+  ctx.beginPath();
+  ctx.roundRect(12, 12, 776, 456, 20);
+  ctx.stroke();
+
+  // Línea decorativa superior
+  ctx.strokeStyle = 'rgba(245,200,66,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(40, 60); ctx.lineTo(760, 60);
+  ctx.stroke();
+
+  // Código artefacto
+  ctx.fillStyle = '#f5c842';
+  ctx.font = 'bold 13px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('ALMAAI LAB · MAT-3-01', 400, 46);
+
+  // Icono logro
+  ctx.font = '72px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⚙️', 400, 175);
+
+  // Título logro
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 36px sans-serif';
+  ctx.fillText('Ingeniera de Números', 400, 240);
+
+  // Subtítulo
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '18px sans-serif';
+  ctx.fillText('La Fábrica de Números completado', 400, 278);
+
+  // Curso
+  ctx.fillStyle = '#00c9b1';
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillText('Matemáticas · 3º Primaria', 400, 316);
+
+  // Estrellas según aciertos
+  var total = state.completados || 9;
+  var stars = total >= 8 ? '⭐⭐⭐' : total >= 5 ? '⭐⭐' : '⭐';
+  ctx.font = '30px serif';
+  ctx.fillText(stars, 400, 370);
+
+  // Fecha
+  var hoy = new Date();
+  var fecha = hoy.getDate() + '/' + (hoy.getMonth()+1) + '/' + hoy.getFullYear();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '13px monospace';
+  ctx.fillText(fecha, 400, 406);
+
+  // Fragmento de señal
+  ctx.fillStyle = '#f5c842';
+  ctx.font = 'bold 11px monospace';
+  ctx.fillText('✦ FRAGMENTO 1 · MAT-3-01 · 1 DE 9 MISIONES ✦', 400, 425);
+
+  // Instagram
+  ctx.fillStyle = 'rgba(245,200,66,0.6)';
+  ctx.font = '13px sans-serif';
+  ctx.fillText('@almaia_labs', 400, 448);
+
+  // Descargar
+  var link = document.createElement('a');
+  link.download = 'logro-MAT-3-01-almaai.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ═══════════════════════════════════════
+// PARTÍCULAS ESTRELLA
+// ═══════════════════════════════════════
+function throwStars(n = 6) {
+  const container = document.getElementById('starsContainer');
+  const emojis = ['⭐', '✨', '🌟', '💫', '⚙️'];
+  for (let i = 0; i < n; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'star-particle';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      el.style.left = (20 + Math.random() * 60) + '%';
+      el.style.top = (30 + Math.random() * 40) + '%';
+      el.style.animationDelay = (Math.random() * 0.3) + 's';
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 1800);
+    }, i * 80);
+  }
+}
+</script>
+  </main>
+</body>
+</html>
