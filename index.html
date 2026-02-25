@@ -2822,6 +2822,12 @@ function iniciarRecognition() {
     if (!state.voiceActive) { dbg('crearYArrancar: voiceActive=false, abortando'); return; }
     // Semáforo: si ya hay una instancia activa o arrancando, no crear otra
     if (state.recognition) { dbg('crearYArrancar: ya hay recognition activo, ignorando'); return; }
+    // No arrancar si Alma está hablando — esperamos a que termine
+    if (window.speechSynthesis && window.speechSynthesis.speaking) {
+      dbg('crearYArrancar: síntesis activa, esperando...');
+      setTimeout(crearYArrancar, 300);
+      return;
+    }
     dbg('crearYArrancar: creando SpeechRecognition...');
 
     var rec = new SR();
