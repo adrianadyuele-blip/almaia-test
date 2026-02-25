@@ -2899,6 +2899,61 @@ function iniciarRecognition() {
 }
 
 function procesarComandoVoz(transcript) {
+  // ── -1. DIAGNÓSTICO OVERLAY ACTIVO ────────────────────────────────────
+  var diagOverlay = document.getElementById('diagnosticoOverlay');
+  if (diagOverlay && diagOverlay.classList.contains('show')) {
+    // Mapa igual que el de las opciones normales
+    var mapaD = {'uno':0,'dos':1,'tres':2,'cuatro':3,'one':0,'two':1,'three':2,'four':3,
+                 '1':0,'2':1,'3':2,'4':3,
+                 'primera':0,'segunda':1,'tercera':2,'cuarta':3,
+                 'la primera':0,'la segunda':1,'la tercera':2,'la cuarta':3,
+                 'opción uno':0,'opción dos':1,'opción tres':2,'opción cuatro':3,
+                 'opción 1':0,'opción 2':1,'opción 3':2,'opción 4':3};
+    if (transcript.includes('repite') || transcript.includes('repetir')) {
+      var nivelActual = diagNivelActual;
+      var intentoActual = diagIntentoActual;
+      if (nivelActual && diagPreguntas[nivelActual]) {
+        var datos = diagPreguntas[nivelActual][intentoActual];
+        speakQueue([datos.question, datos.opciones.map(function(op, i) { return 'Opción ' + (i+1) + ': ' + op; }).join('. ')]);
+      }
+      return;
+    }
+    var idxD = mapaD[transcript];
+    if (idxD === undefined) {
+      var pw = transcript.trim().split(' ')[0];
+      idxD = mapaD[pw];
+    }
+    if (idxD === undefined) {
+      var numD = parseInt(transcript) - 1;
+      if (!isNaN(numD) && numD >= 0 && numD <= 3) idxD = numD;
+    }
+    if (idxD !== undefined) {
+      var btnsD = document.querySelectorAll('.diagnostico-opt');
+      if (btnsD[idxD] && !btnsD[idxD].disabled) {
+        btnsD[idxD].click();
+        return;
+      }
+    }
+    // Comandos globales dentro del diagnostico
+    if (transcript.includes('empieza') || transcript.includes('empezar') || transcript.includes('comenzar')) {
+      window.speechSynthesis.cancel();
+      cerrarDiagnostico();
+      speak('Empezando desde el principio.');
+      setTimeout(function() { hideAcceso(); }, 800);
+      return;
+    }
+    if (transcript.includes('reiniciar') || transcript.includes('reinicia')) {
+      window.speechSynthesis.cancel();
+      cerrarDiagnostico();
+      speak('Reiniciando.');
+      setTimeout(function() { restartGame(); }, 800);
+      return;
+    }
+    // No reconocido en diagnostico — recordar opciones
+    speak('Di uno, dos, tres o cuatro para elegir tu respuesta. Di repite para escuchar la pregunta de nuevo.');
+    return;
+  }
+
   // ── 0. FASE ACCESO: pantalla de bienvenida ─────────────────────────────
   if (state.fase === 'acceso') {
     if (transcript.includes('repite') || transcript.includes('repetir') || transcript.includes('repita')) {
@@ -2972,7 +3027,7 @@ function procesarComandoVoz(transcript) {
     window.speechSynthesis.cancel();
     state.voiceQueue = [];
     speak('Reiniciando desde el principio.');
-    setTimeout(function() { confirmRestart(); }, 1000);
+    setTimeout(function() { restartGame(); }, 1000);
     return;
   }
 
