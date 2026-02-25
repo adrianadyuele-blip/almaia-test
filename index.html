@@ -370,11 +370,23 @@
     padding: 14px 16px;
     font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 700;
     color: var(--white);
-    cursor: pointer; text-align: center;
+    cursor: pointer; text-align: left;
     transition: all 0.2s;
     position: relative;
     overflow: hidden;
+    display: flex; align-items: center; gap: 12px;
   }
+  .opt-letra {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 32px; height: 32px;
+    background: rgba(120,80,255,0.35);
+    border-radius: 8px;
+    font-size: 17px; font-weight: 900; color: #c8b4ff;
+    flex-shrink: 0;
+  }
+  .option-btn.correct .opt-letra { background: rgba(78,255,158,0.3); color: #4eff9e; }
+  .option-btn.wrong .opt-letra   { background: rgba(255,92,92,0.3);  color: #ff5c5c; }
+  .opt-texto { flex: 1; }
   .option-btn:hover:not(:disabled) {
     background: rgba(255,255,255,0.08);
     border-color: var(--teal);
@@ -1828,13 +1840,14 @@ function loadReto() {
 }
 
 function renderOpciones(reto) {
+  const letras = ['A','B','C','D'];
   const grid = document.getElementById('optionsGrid');
   grid.innerHTML = '';
   reto.opciones.forEach((op, i) => {
     const btn = document.createElement('button');
     btn.className = 'option-btn';
-    btn.textContent = op;
-    btn.setAttribute('aria-label', 'Opción ' + (i+1) + ' de ' + reto.opciones.length + ': ' + op);
+    btn.innerHTML = '<span class="opt-letra">' + letras[i] + '</span><span class="opt-texto">' + op + '</span>';
+    btn.setAttribute('aria-label', letras[i] + ': ' + op);
     btn.setAttribute('tabindex', '0');
     btn.onclick = () => checkOpcion(i, reto, btn);
     grid.appendChild(btn);
@@ -1843,7 +1856,9 @@ function renderOpciones(reto) {
   grid._keyHandler && document.removeEventListener('keydown', grid._keyHandler);
   grid._keyHandler = function(e) {
     if (document.getElementById('optionsGrid').style.display === 'none') return;
-    var idx = parseInt(e.key) - 1;
+    var letraIdx = {'a':0,'b':1,'c':2,'d':3};
+    var idx = letraIdx[e.key.toLowerCase()];
+    if (idx === undefined) idx = parseInt(e.key) - 1; // fallback numérico
     if (idx >= 0 && idx < reto.opciones.length) {
       e.preventDefault();
       var btns = document.querySelectorAll('.option-btn');
@@ -1854,7 +1869,7 @@ function renderOpciones(reto) {
       e.preventDefault();
       speak(reto.question);
       setTimeout(function() {
-        var textoOpciones = reto.opciones.map(function(op, i) { return 'Opción ' + (i+1) + ': ' + op; }).join('. ');
+        var letrasVoz = ['A','B','C','D']; var textoOpciones = reto.opciones.map(function(op, i) { return letrasVoz[i] + ': ' + op; }).join('. ');
         speak(textoOpciones);
       }, 1200);
     }
@@ -2056,13 +2071,14 @@ function cargarRepasoReto() {
 }
 
 function renderOpcionesRepaso(reto) {
+  var letras = ['A','B','C','D'];
   var grid = document.getElementById('optionsGrid');
   grid.innerHTML = '';
   reto.opciones.forEach(function(op, i) {
     var btn = document.createElement('button');
     btn.className = 'option-btn';
-    btn.textContent = op;
-    btn.setAttribute('aria-label', 'Opción ' + (i+1) + ' de ' + reto.opciones.length + ': ' + op);
+    btn.innerHTML = '<span class="opt-letra">' + letras[i] + '</span><span class="opt-texto">' + op + '</span>';
+    btn.setAttribute('aria-label', letras[i] + ': ' + op);
     btn.setAttribute('tabindex', '0');
     btn.onclick = function() { checkOpcionRepaso(i, reto, btn); };
     grid.appendChild(btn);
@@ -2622,7 +2638,7 @@ function leerRetoCompleto(reto) {
       }
       cola.push(textoOpcion);
     });
-    cola.push('Cuando quieras responder, di el número de la opción.');
+    cola.push('Cuando quieras responder, di A, B, C o D.');
     var nivelKey = reto.nivel;
     if (!nivelMagicaVisto[nivelKey]) {
       nivelMagicaVisto[nivelKey] = true;
@@ -2820,11 +2836,10 @@ function iniciarRecognition() {
       var SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
       if (SGL) {
         var grammar = '#JSGF V1.0; grammar comandos; public <comando> = ' +
-          'uno | dos | tres | cuatro | ' +
+          'a | b | c | d | ' +
           'repite | ayuda | siguiente | continua | ' +
           'empieza | empezar | comenzar | reiniciar | ' +
           'orbita | galaxia | despegue | ' +
-          'primera | segunda | tercera | cuarta | ' +
           'si | no ;';
         var lista = new SGL();
         lista.addFromString(grammar, 1);
@@ -2919,29 +2934,32 @@ function procesarComandoVoz(transcript, alternativas) {
   var diagOverlay = document.getElementById('diagnosticoOverlay');
   if (diagOverlay && diagOverlay.classList.contains('show')) {
     // Mapa igual que el de las opciones normales
-    var mapaD = {'uno':0,'dos':1,'tres':2,'cuatro':3,'one':0,'two':1,'three':2,'four':3,
-                 '1':0,'2':1,'3':2,'4':3,
-                 'primera':0,'segunda':1,'tercera':2,'cuarta':3,
-                 'la primera':0,'la segunda':1,'la tercera':2,'la cuarta':3,
-                 'opción uno':0,'opción dos':1,'opción tres':2,'opción cuatro':3,
-                 'opción 1':0,'opción 2':1,'opción 3':2,'opción 4':3};
+    var tD = transcript.replace(/[.,!?¿¡]$/,'').trim();
+    var tDUp = tD.toUpperCase();
+    var mapaD = {
+      'a':0,'la a':0,'opción a':0,'opcion a':0,
+      'b':1,'la b':1,'opción b':1,'opcion b':1,'ve':1,'be':1,
+      'c':2,'la c':2,'opción c':2,'opcion c':2,'se':2,'ce':2,
+      'd':3,'la d':3,'opción d':3,'opcion d':3,'de':3
+    };
     if (transcript.includes('repite') || transcript.includes('repetir')) {
       var nivelActual = diagNivelActual;
       var intentoActual = diagIntentoActual;
       if (nivelActual && diagPreguntas[nivelActual]) {
         var datos = diagPreguntas[nivelActual][intentoActual];
-        speakQueue([datos.question, datos.opciones.map(function(op, i) { return 'Opción ' + (i+1) + ': ' + op; }).join('. ')]);
+        speakQueue([datos.question, datos.opciones.map(function(op, i) { return ['A','B','C','D'][i] + ': ' + op; }).join('. ')]);
       }
       return;
     }
-    var idxD = mapaD[transcript];
+    var idxD = mapaD[tD];
+    if (idxD === undefined) idxD = mapaD[tD.split(' ')[0]];
+    // Fallback: primera letra A/B/C/D
     if (idxD === undefined) {
-      var pw = transcript.trim().split(' ')[0];
-      idxD = mapaD[pw];
-    }
-    if (idxD === undefined) {
-      var numD = parseInt(transcript) - 1;
-      if (!isNaN(numD) && numD >= 0 && numD <= 3) idxD = numD;
+      var letraD = tDUp.charAt(0);
+      if      (letraD === 'A') idxD = 0;
+      else if (letraD === 'B') idxD = 1;
+      else if (letraD === 'C') idxD = 2;
+      else if (letraD === 'D') idxD = 3;
     }
     if (idxD !== undefined) {
       var btnsD = document.querySelectorAll('.diagnostico-opt');
@@ -2966,7 +2984,7 @@ function procesarComandoVoz(transcript, alternativas) {
       return;
     }
     // No reconocido en diagnostico — recordar opciones
-    speak('Di el número de la opción que creas correcta. Si quieres escuchar la pregunta otra vez, di: repite.');
+    speak('Di A, B, C o D para elegir tu respuesta. Si quieres escuchar la pregunta otra vez, di: repite.');
     return;
   }
 
@@ -3026,7 +3044,7 @@ function procesarComandoVoz(transcript, alternativas) {
     var mensajeAyuda;
     var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
     if (reto && reto.type === 'opcion') {
-      mensajeAyuda = 'Escucha la pregunta y di el número de la opción que elijas. También puedes decir: repite, para escucharla de nuevo.';
+      mensajeAyuda = 'Escucha la pregunta y di A, B, C o D para elegir. También puedes decir: repite, para escucharla de nuevo.';
     } else if (reto && reto.type === 'input') {
       mensajeAyuda = 'Escucha la pregunta y di el número de tu respuesta en voz alta. Por ejemplo, di cuatro mil novecientos. Di repite para escuchar la pregunta de nuevo.';
     } else if (state.fase === 'victoria') {
@@ -3079,38 +3097,40 @@ function procesarComandoVoz(transcript, alternativas) {
     }
   }
 
-  // ── 5. OPCIONES 1-4 ────────────────────────────────────────────────────
+  // ── 5. OPCIONES A/B/C/D ─────────────────────────────────────────────────
   if (document.getElementById('optionsGrid').style.display !== 'none') {
-    var mapaOpciones = {'uno':0,'dos':1,'tres':2,'cuatro':3,'one':0,'two':1,'three':2,'four':3,
-                        'primera':0,'segunda':1,'tercera':2,'cuarta':3,
-                        'la primera':0,'la segunda':1,'la tercera':2,'la cuarta':3,
-                        'opción uno':0,'opción dos':1,'opción tres':2,'opción cuatro':3,
-                        'opción 1':0,'opción 2':1,'opción 3':2,'opción 4':3,
-                        '1':0,'2':1,'3':2,'4':3};
-    var numDirect = parseInt(transcript) - 1;
-    var idxOpcion = (!isNaN(numDirect) && numDirect >= 0 && numDirect <= 3) ? numDirect : undefined;
+    dbg('🔍 buscando opción en: "' + transcript + '"');
+    // Limpiar: quitar puntuación que Chrome añade a veces
+    var t = transcript.replace(/[.,!?¿¡]$/,'').trim();
+    var tUp = t.toUpperCase();
+
+    var mapaLetras = {
+      'a':0, 'la a':0, 'opción a':0, 'opcion a':0,
+      'b':1, 'la b':1, 'opción b':1, 'opcion b':1, 've':1, 'be':1,
+      'c':2, 'la c':2, 'opción c':2, 'opcion c':2, 'se':2, 'ce':2,
+      'd':3, 'la d':3, 'opción d':3, 'opcion d':3, 'de':3
+    };
+
+    var idxOpcion = mapaLetras[t];
+
+    // Si no matchea exacto, buscar si la transcripción empieza por A/B/C/D
     if (idxOpcion === undefined) {
-      // Intentar con la frase completa primero, luego solo la primera palabra
-      idxOpcion = mapaOpciones[transcript];
-      if (idxOpcion === undefined) {
-        var primeraPalabra = transcript.trim().split(' ')[0];
-        idxOpcion = mapaOpciones[primeraPalabra];
-      }
-      // También buscar si la transcripción CONTIENE una palabra clave al principio
-      if (idxOpcion === undefined) {
-        var palabras = ['uno','dos','tres','cuatro'];
-        for (var pi = 0; pi < palabras.length; pi++) {
-          if (transcript.startsWith(palabras[pi]) || transcript.startsWith(palabras[pi]+' ')) {
-            idxOpcion = pi; break;
-          }
-        }
-      }
+      var letraInicial = tUp.charAt(0);
+      if      (letraInicial === 'A') idxOpcion = 0;
+      else if (letraInicial === 'B') idxOpcion = 1;
+      else if (letraInicial === 'C') idxOpcion = 2;
+      else if (letraInicial === 'D') idxOpcion = 3;
     }
+
+    dbg('🔍 idxOpcion resuelto: ' + idxOpcion);
+
     if (idxOpcion !== undefined && idxOpcion >= 0) {
       var btns = document.querySelectorAll('.option-btn');
       if (btns[idxOpcion] && !btns[idxOpcion].disabled) {
         btns[idxOpcion].click();
         return;
+      } else {
+        dbg('🔍 botón ' + idxOpcion + ' no disponible (disabled o no existe)');
       }
     }
   }
