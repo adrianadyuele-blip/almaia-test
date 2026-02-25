@@ -1873,6 +1873,10 @@ function checkOpcion(idx, reto, btn) {
   if (correct) {
     btn.classList.add('correct');
     showFeedback(true, reto.feedback_ok);
+    if (state.voiceActive) {
+      window.speechSynthesis.cancel();
+      speak(limpiarParaVoz(reto.feedback_ok));
+    }
     completeReto(reto);
   } else {
     btn.classList.add('wrong');
@@ -1880,69 +1884,37 @@ function checkOpcion(idx, reto, btn) {
     state.intentoActual++;
 
     if (state.intentoActual === 1) {
-      // Intento 1: solo pista pequeña de Alma (sin caja roja)
+      // Intento 1: pista pequeña → re-habilitar botones DESPUÉS de que Alma hable
       mostrarHint(reto.pista1 || reto.feedback_err);
-      // Re-habilitar botones para que pueda intentarlo de nuevo
-      setTimeout(function() {
-        allBtns.forEach(function(b) {
-          b.disabled = false;
-          b.classList.remove('wrong', 'correct');
+      if (state.voiceActive) {
+        window.speechSynthesis.cancel();
+        // Hablar feedback, y solo cuando termine re-habilitar botones
+        speakQueue([limpiarParaVoz(reto.feedback_err)], 0.55, function() {
+          allBtns.forEach(function(b) {
+            b.disabled = false;
+            b.classList.remove('wrong', 'correct');
+          });
+          iniciarRecognition();
         });
-      }, 4500);
+      } else {
+        setTimeout(function() {
+          allBtns.forEach(function(b) {
+            b.disabled = false;
+            b.classList.remove('wrong', 'correct');
+          });
+        }, 4500);
+      }
     } else {
-      // Intento 2: solo pista grande (sin caja roja) → avanza marcado como pendiente
+      // Intento 2: pista grande → avanza marcado como pendiente
       mostrarHint(reto.pista2 || reto.feedback_err);
+      if (state.voiceActive) {
+        window.speechSynthesis.cancel();
+        speak(limpiarParaVoz(reto.feedback_err));
+      }
       setTimeout(function() {
         marcarPendiente();
       }, 4000);
     }
-  }
-  if (state.voiceActive) {
-    window.speechSynthesis.cancel();
-    speak(correct ? reto.feedback_ok : reto.feedback_err);
-  }
-  if (document.getElementById('btnNext').classList.contains('show')) return;
-  var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
-  var inp = document.getElementById('textInput');
-  var val = inp.value.trim().toLowerCase().replace(/\s+/g, ' ');
-  var correct = reto.correctas.some(function(c) {
-    return val === c.toLowerCase() || val === c.toLowerCase().replace(/\./g, '');
-  });
-
-  inp.className = 'text-input ' + (correct ? 'correct' : 'wrong');
-
-  if (correct) {
-    showFeedback(true, reto.feedback_ok);
-    if (state.enRepaso) {
-      completeRepasoReto(reto);
-    } else {
-      completeReto(reto);
-    }
-  } else {
-    state.intentoActual++;
-
-    if (state.enRepaso) {
-      // Lógica especial de repaso
-      manejarErrorRepaso(reto, inp);
-    } else if (state.intentoActual === 1) {
-      // Intento 1: solo pista pequeña (sin caja roja)
-      mostrarHint(reto.pista1 || reto.feedback_err);
-      setTimeout(function() {
-        inp.className = 'text-input';
-        inp.value = '';
-        inp.focus();
-      }, 4500);
-    } else {
-      // Intento 2: solo pista grande (sin caja roja) → pendiente
-      mostrarHint(reto.pista2 || reto.feedback_err);
-      setTimeout(function() {
-        marcarPendiente();
-      }, 4000);
-    }
-  }
-  if (state.voiceActive) {
-    window.speechSynthesis.cancel();
-    speak(correct ? reto.feedback_ok : reto.feedback_err);
   }
 }
 
@@ -1982,7 +1954,7 @@ function checkInput() {
   }
   if (state.voiceActive) {
     window.speechSynthesis.cancel();
-    speak(correct ? reto.feedback_ok : reto.feedback_err);
+    speak(limpiarParaVoz(correct ? reto.feedback_ok : reto.feedback_err));
   }
 }
 
@@ -2616,6 +2588,9 @@ function limpiarParaVoz(texto) {
     .replace(/[\u{1F000}-\u{1FFFF}]/gu, '') // emojis Unicode extendidos
     .replace(/[\u2600-\u27BF]/g, '')          // símbolos misceláneos
     .replace(/[\uFE00-\uFE0F]/g, '')          // variantes de presentación
+    .replace(/=/g, 'es igual a')               // = → "es igual a"
+    .replace(/·/g, ', ')                        // · → pausa natural
+    .replace(/(\d)\.(\d{3})/g, '$1$2')         // 4.520 → 4520 (evita "cuatro coma quinientos")
     .replace(/\s{2,}/g, ' ')                  // espacios dobles por el hueco del emoji
     .trim();
 }
