@@ -2445,7 +2445,7 @@ function updateAlma(text) {
 
 function updateAlmaForReto(reto) {
   const msgs = {
-    0: '🚀 ¡Despegue iniciado! Lee el número y escríbelo en cifras. ¡Tú puedes!',
+    0: '🚀 ¡Despegue iniciado! Escucha bien el número. ¡Tú puedes!',
     1: 'Cada cifra tiene su lugar. ¿Cuál es el valor de las centenas?',
     2: 'Ordenar números es como decidir quién va primero en la cola del recreo.',
     3: '🌙 ¡Órbita alcanzada! Ahora construyes números a partir de sus piezas.',
@@ -2647,20 +2647,20 @@ function leerRetoCompleto(reto) {
       }
       cola.push(textoOpcion);
     });
-    cola.push('Di uno, dos, tres o cuatro para responder.');
+    cola.push('Cuando quieras responder, di el número de la opción.');
     var nivelKey = reto.nivel;
     if (!nivelMagicaVisto[nivelKey]) {
       nivelMagicaVisto[nivelKey] = true;
-      cola.push('Recuerda: si quieres que lo repita, di la palabra mágica: repite.');
+      cola.push('Si quieres escucharlo otra vez, di: repite.');
     } else {
       cola.push('¿Quieres que lo repita? Di: repite.');
     }
   } else {
-    cola.push('Di el número en voz alta para responder.');
+    cola.push('Cuando estés listo, di el número en voz alta.');
     var nivelKey2 = reto.nivel;
     if (!nivelMagicaVisto[nivelKey2]) {
       nivelMagicaVisto[nivelKey2] = true;
-      cola.push('Recuerda: si quieres que lo repita, di la palabra mágica: repite.');
+      cola.push('Si quieres escucharlo otra vez, di: repite.');
     } else {
       cola.push('¿Quieres que lo repita? Di: repite.');
     }
@@ -2828,36 +2828,52 @@ function iniciarRecognition() {
     // No arrancar si Alma está hablando — esperamos a que termine
     if (window.speechSynthesis && window.speechSynthesis.speaking) {
       dbg('crearYArrancar: síntesis activa, esperando...');
-      setTimeout(crearYArrancar, 300);
+      setTimeout(crearYArrancar, 500);
       return;
     }
     dbg('crearYArrancar: creando SpeechRecognition...');
 
     var rec = new SR();
     rec.lang = 'es-ES';
-    rec.continuous = false;   // false es más fiable — reiniciamos manualmente en onend
-    rec.interimResults = true; // capturar resultados intermedios ayuda con palabras cortas
-    rec.maxAlternatives = 5;  // más alternativas para captar palabras cortas
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.maxAlternatives = 3;
+
+    // SpeechGrammarList: decirle a Chrome el vocabulario exacto
+    // Reduce el umbral de confianza — clave para palabras cortas como "uno"
+    try {
+      var SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+      if (SGL) {
+        var grammar = '#JSGF V1.0; grammar comandos; public <comando> = ' +
+          'uno | dos | tres | cuatro | ' +
+          'repite | ayuda | siguiente | continua | ' +
+          'empieza | empezar | comenzar | reiniciar | ' +
+          'orbita | galaxia | despegue | ' +
+          'primera | segunda | tercera | cuarta | ' +
+          'si | no ;';
+        var lista = new SGL();
+        lista.addFromString(grammar, 1);
+        rec.grammars = lista;
+      }
+    } catch(ge) { /* navegador sin soporte, ignorar */ }
+
     state.recognition = rec;
 
-    var _procesado = false; // evitar doble procesamiento de interim+final
     rec.onresult = function(e) {
-      if (_procesado) return;
       var result = e.results[e.results.length - 1];
-      // Con interimResults=true, esperar resultado final salvo que sea una palabra clave corta
+      // Log completo para diagnóstico — muestra confianza de cada alternativa
+      var logParts = [];
+      for (var ai = 0; ai < result.length; ai++) {
+        logParts.push('"' + result[ai].transcript + '" (conf:' + (result[ai].confidence || 0).toFixed(2) + ')');
+      }
+      dbg('🎤 RAW [' + (result.isFinal ? 'FINAL' : 'interim') + ']: ' + logParts.join(' | '));
+      if (!result.isFinal) return;
       var transcripts = [];
       for (var ai = 0; ai < result.length; ai++) {
         transcripts.push(result[ai].transcript.toLowerCase().trim());
       }
       var transcript = transcripts[0];
-      // Si es resultado final, procesamos siempre
-      // Si es intermedio, solo procesamos si es un comando muy corto y claro
-      var comandosCortos = ['uno','dos','tres','cuatro','1','2','3','4','repite','ayuda'];
-      var esFinal = result.isFinal;
-      var esComandoCorto = comandosCortos.indexOf(transcript) !== -1;
-      if (!esFinal && !esComandoCorto) return; // esperar al resultado final
-      _procesado = true;
-      dbg('🎤 VOZ detectada: "' + transcript + '"' + (!esFinal ? ' (interim)' : '') + (transcripts.length > 1 ? ' (alt: ' + transcripts.slice(1).join(', ') + ')' : ''));
+      dbg('🎤 VOZ detectada: "' + transcript + '"');
       procesarComandoVoz(transcript, transcripts);
     };
 
@@ -2975,7 +2991,7 @@ function procesarComandoVoz(transcript, alternativas) {
       return;
     }
     // No reconocido en diagnostico — recordar opciones
-    speak('Di uno, dos, tres o cuatro para elegir tu respuesta. Di repite para escuchar la pregunta de nuevo.');
+    speak('Di el número de la opción que creas correcta. Si quieres escuchar la pregunta otra vez, di: repite.');
     return;
   }
 
@@ -3035,7 +3051,7 @@ function procesarComandoVoz(transcript, alternativas) {
     var mensajeAyuda;
     var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
     if (reto && reto.type === 'opcion') {
-      mensajeAyuda = 'Escucha la pregunta y di uno, dos, tres o cuatro para elegir tu respuesta. Di repite para escuchar la pregunta de nuevo.';
+      mensajeAyuda = 'Escucha la pregunta y di el número de la opción que elijas. También puedes decir: repite, para escucharla de nuevo.';
     } else if (reto && reto.type === 'input') {
       mensajeAyuda = 'Escucha la pregunta y di el número de tu respuesta en voz alta. Por ejemplo, di cuatro mil novecientos. Di repite para escuchar la pregunta de nuevo.';
     } else if (state.fase === 'victoria') {
