@@ -2543,8 +2543,11 @@ function _speakNext(rate, onComplete) {
     state._speakingLock = false;
     dbg('_speakNext: cola vacía → llamando iniciarRecognition');
     setTimeout(function() {
-      if (state.voiceActive) iniciarRecognition();
-      if (onComplete) onComplete();
+      if (onComplete) {
+        onComplete(); // onComplete es responsable de llamar iniciarRecognition si lo necesita
+      } else {
+        if (state.voiceActive) iniciarRecognition();
+      }
     }, 600);
     return;
   }
@@ -2833,14 +2836,29 @@ function iniciarRecognition() {
     var rec = new SR();
     rec.lang = 'es-ES';
     rec.continuous = false;   // false es más fiable — reiniciamos manualmente en onend
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
+    rec.interimResults = true; // capturar resultados intermedios ayuda con palabras cortas
+    rec.maxAlternatives = 5;  // más alternativas para captar palabras cortas
     state.recognition = rec;
 
+    var _procesado = false; // evitar doble procesamiento de interim+final
     rec.onresult = function(e) {
-      var transcript = e.results[0][0].transcript.toLowerCase().trim();
-      dbg('🎤 VOZ detectada: "' + transcript + '"');
-      procesarComandoVoz(transcript);
+      if (_procesado) return;
+      var result = e.results[e.results.length - 1];
+      // Con interimResults=true, esperar resultado final salvo que sea una palabra clave corta
+      var transcripts = [];
+      for (var ai = 0; ai < result.length; ai++) {
+        transcripts.push(result[ai].transcript.toLowerCase().trim());
+      }
+      var transcript = transcripts[0];
+      // Si es resultado final, procesamos siempre
+      // Si es intermedio, solo procesamos si es un comando muy corto y claro
+      var comandosCortos = ['uno','dos','tres','cuatro','1','2','3','4','repite','ayuda'];
+      var esFinal = result.isFinal;
+      var esComandoCorto = comandosCortos.indexOf(transcript) !== -1;
+      if (!esFinal && !esComandoCorto) return; // esperar al resultado final
+      _procesado = true;
+      dbg('🎤 VOZ detectada: "' + transcript + '"' + (!esFinal ? ' (interim)' : '') + (transcripts.length > 1 ? ' (alt: ' + transcripts.slice(1).join(', ') + ')' : ''));
+      procesarComandoVoz(transcript, transcripts);
     };
 
     rec.onerror = function(e) {
@@ -2898,7 +2916,14 @@ function iniciarRecognition() {
   }
 }
 
-function procesarComandoVoz(transcript) {
+function procesarComandoVoz(transcript, alternativas) {
+  // Si viene con alternativas, intentar con cada una si la primera no da resultado
+  if (alternativas && alternativas.length > 1) {
+    // Guardar para uso interno si la primera no funciona
+    procesarComandoVoz._alternativas = alternativas.slice(1);
+  } else {
+    procesarComandoVoz._alternativas = [];
+  }
   // ── -1. DIAGNÓSTICO OVERLAY ACTIVO ────────────────────────────────────
   var diagOverlay = document.getElementById('diagnosticoOverlay');
   if (diagOverlay && diagOverlay.classList.contains('show')) {
