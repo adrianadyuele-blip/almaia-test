@@ -2920,7 +2920,10 @@ function procesarComandoVoz(transcript) {
     }
     if (transcript.includes('empieza') || transcript.includes('empezar') || transcript.includes('comenzar') || transcript.includes('inicio') || transcript.includes('siguiente') || transcript.includes('continuar')) {
       speak('¡Vamos allá! Empezando desde el principio.');
-      setTimeout(function() { hideAcceso(); }, 900);
+      setTimeout(function() {
+        document.getElementById('diagnosticoOverlay').classList.remove('show');
+        hideAcceso();
+      }, 900);
       return;
     }
     if (transcript.includes('órbita') || transcript.includes('orbita')) {
@@ -2964,6 +2967,15 @@ function procesarComandoVoz(transcript) {
     return;
   }
 
+  // ── 2b. REINICIAR ────────────────────────────────────────────────────────
+  if (transcript.includes('reiniciar') || transcript.includes('reinicia') || transcript.includes('volver a empezar') || transcript.includes('empezar de nuevo') || transcript.includes('volver a jugar')) {
+    window.speechSynthesis.cancel();
+    state.voiceQueue = [];
+    speak('Reiniciando desde el principio.');
+    setTimeout(function() { confirmRestart(); }, 1000);
+    return;
+  }
+
   // ── 3. SIGUIENTE / CONTINUAR ────────────────────────────────────────────
   if (transcript.includes('siguiente') || transcript.includes('continuar') || transcript.includes('continúa')) {
     var btnNext = document.getElementById('btnNext');
@@ -3000,12 +3012,28 @@ function procesarComandoVoz(transcript) {
   if (document.getElementById('optionsGrid').style.display !== 'none') {
     var mapaOpciones = {'uno':0,'dos':1,'tres':2,'cuatro':3,'one':0,'two':1,'three':2,'four':3,
                         'primera':0,'segunda':1,'tercera':2,'cuarta':3,
-                        'opción uno':0,'opción dos':1,'opción tres':2,'opción cuatro':3};
+                        'la primera':0,'la segunda':1,'la tercera':2,'la cuarta':3,
+                        'opción uno':0,'opción dos':1,'opción tres':2,'opción cuatro':3,
+                        'opción 1':0,'opción 2':1,'opción 3':2,'opción 4':3,
+                        '1':0,'2':1,'3':2,'4':3};
     var numDirect = parseInt(transcript) - 1;
     var idxOpcion = (!isNaN(numDirect) && numDirect >= 0 && numDirect <= 3) ? numDirect : undefined;
     if (idxOpcion === undefined) {
-      var primeraPalabra = transcript.split(' ')[0];
-      idxOpcion = mapaOpciones[primeraPalabra] !== undefined ? mapaOpciones[primeraPalabra] : mapaOpciones[transcript];
+      // Intentar con la frase completa primero, luego solo la primera palabra
+      idxOpcion = mapaOpciones[transcript];
+      if (idxOpcion === undefined) {
+        var primeraPalabra = transcript.trim().split(' ')[0];
+        idxOpcion = mapaOpciones[primeraPalabra];
+      }
+      // También buscar si la transcripción CONTIENE una palabra clave al principio
+      if (idxOpcion === undefined) {
+        var palabras = ['uno','dos','tres','cuatro'];
+        for (var pi = 0; pi < palabras.length; pi++) {
+          if (transcript.startsWith(palabras[pi]) || transcript.startsWith(palabras[pi]+' ')) {
+            idxOpcion = pi; break;
+          }
+        }
+      }
     }
     if (idxOpcion !== undefined && idxOpcion >= 0) {
       var btns = document.querySelectorAll('.option-btn');
