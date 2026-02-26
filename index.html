@@ -958,7 +958,7 @@
       <p>🌙 <strong>Órbita</strong> (Retos 4-6): Vamos más dentro. Componemos y descomponemos números.</p>
       <p>🌟 <strong>Galaxia</strong> (Retos 7-9): Desafíos que sorprenden hasta a los matemáticos. ¡A por ello!</p>
       <p>Al terminar cada reto, <strong>Alma te contará una curiosidad increíble</strong> relacionada con los números. ¡No te las pierdas!</p>
-      <p>Cuando termines todos los retos, conseguirás tu logro: <strong>Ingeniera de Números</strong>.</p>
+      <p>Cuando termines todos los retos, conseguirás tu logro: <strong>Genio de los Números</strong>.</p>
       <p>Si ya sabes mucho de números grandes, pregúntale a Alma si puedes <strong>saltar directamente a Órbita o Galaxia</strong>.</p>
     </div>
   </div>
@@ -971,7 +971,7 @@
     <div class="logro-card">
       <div class="logro-code">ALMAAI LAB · MAT-3-01</div>
       <div class="logro-icon">⚙️</div>
-      <div class="logro-name">Ingeniera de Números</div>
+      <div class="logro-name">Genio de los Números</div>
       <div class="logro-course">Matemáticas · 3º de Primaria</div>
       <div class="logro-stars" id="logroStars">⭐⭐⭐</div>
       <div style="font-size: 13px; color: var(--white-dim); margin-top: 6px;">La Fábrica de Números completada</div>
@@ -1149,8 +1149,8 @@
   <div class="victory-screen" id="victoryScreen">
     <div class="victory-trophy">⚙️🏆⚙️</div>
     <div class="victory-logro">Logro desbloqueado</div>
-    <div class="victory-title">Ingeniera de Números</div>
-    <div class="victory-subtitle" id="victorySubtitle">¡Lo has conseguido! Ya eres Ingeniera de Números. Eso significa que no solo lees los números: los entiendes por dentro y por fuera. Guarda este logro, porque lo vas a necesitar para lo que viene.</div>
+    <div class="victory-title">Genio de los Números</div>
+    <div class="victory-subtitle" id="victorySubtitle">¡Lo has conseguido! Ya eres un Genio de los Números. Eso significa que no solo lees los números: los entiendes por dentro y por fuera. Guarda este logro, porque lo vas a necesitar para lo que viene.</div>
     <div class="victory-actions">
       <button class="btn-share" onclick="openModal('modalLogro')">🏅 Ver mi logro</button>
       <button class="btn-share" onclick="restartGame()" style="border-color: var(--white-dim); color: var(--white-dim);">🔄 Volver a jugar</button>
@@ -1699,11 +1699,17 @@ function checkDiagnostico(idx, btn) {
     btn.classList.add('correct');
     fb.textContent = '✅ ' + datos.feedback_ok;
     fb.className = 'diagnostico-feedback show ok';
-    if (state.voiceActive) speak(datos.feedback_ok);
-    setTimeout(function() {
-      cerrarDiagnostico();
-      confirmarAccesoRapido(datos.nivelDestino);
-    }, 2500);
+    if (state.voiceActive) {
+      speakQueue([datos.feedback_ok, '¡Acceso concedido!'], 0.88, function() {
+        cerrarDiagnostico();
+        confirmarAccesoRapido(datos.nivelDestino);
+      });
+    } else {
+      setTimeout(function() {
+        cerrarDiagnostico();
+        confirmarAccesoRapido(datos.nivelDestino);
+      }, 2500);
+    }
   } else {
     // NUNCA se marca la correcta — solo orientación
     btn.classList.add('wrong');
@@ -1734,6 +1740,9 @@ function cerrarDiagnostico() {
 
 function confirmarAccesoRapido(nivel) {
   document.getElementById('accesoRapido').style.display = 'none';
+  // Cancelar cualquier TTS pendiente antes de hablar el feedback
+  window.speechSynthesis.cancel();
+  state.voiceQueue = [];
   if (nivel === 'experto') {
     state.expertoUnlocked = true;
     state.skipUnlock = true;
@@ -1741,8 +1750,13 @@ function confirmarAccesoRapido(nivel) {
     state.completados = 3;
     document.getElementById('chipFacil').className = 'level-chip done';
     document.getElementById('chipExperto').className = 'level-chip active';
-    updateAlma('¡Demostrado! Directo a Órbita. Los números no tienen secretos para ti.');
-    startGame(3);
+    var msg = '¡Demostrado! Directo a Órbita. Los números no tienen secretos para ti.';
+    updateAlma(msg);
+    if (state.voiceActive) {
+      speakQueue([msg], 0.88, function() { startGame(3); });
+    } else {
+      startGame(3);
+    }
   } else {
     state.expertoUnlocked = true;
     state.genioUnlocked = true;
@@ -1752,8 +1766,13 @@ function confirmarAccesoRapido(nivel) {
     document.getElementById('chipFacil').className = 'level-chip done';
     document.getElementById('chipExperto').className = 'level-chip done';
     document.getElementById('chipGenio').className = 'level-chip active';
-    updateAlma('¡Demostrado! Directo a Galaxia. ¡Esto ya es nivel espacial!');
-    startGame(6);
+    var msg2 = '¡Demostrado! Directo a Galaxia. ¡Esto ya es nivel espacial!';
+    updateAlma(msg2);
+    if (state.voiceActive) {
+      speakQueue([msg2], 0.88, function() { startGame(6); });
+    } else {
+      startGame(6);
+    }
   }
 }
 
@@ -2225,7 +2244,8 @@ var curiosidadesNivel = {
   }
 };
 
-var nivelCuriosidadPendiente = null; // 'experto' | 'genio' | null
+var nivelCuriosidadPendiente = null; // 'experto' | 'genio' | 'victoria' | null
+var unlockPendiente = null; // 'experto' | 'genio' | null — pantalla unlock esperando "siguiente"
 
 function mostrarNivelCuriosidad(nivel) {
   var datos = curiosidadesNivel[nivel];
@@ -2298,14 +2318,28 @@ function mostrarPantallaUnlock(nivel) {
     document.getElementById('chipGenio').className = 'level-chip active';
     state.genioUnlocked = true;
   }
+  unlockPendiente = nivel;
   screen.classList.add('show');
-  updateAlma(document.getElementById('unlockSubtitle').textContent);
-  if (state.voiceActive) speak(document.getElementById('unlockSubtitle').textContent);
+  // Dar foco al botón para que click/teclado funcionen
+  setTimeout(function() {
+    var btnUnlock = document.getElementById('unlockBtn');
+    if (btnUnlock) btnUnlock.focus();
+  }, 300);
+  var subtxt = document.getElementById('unlockSubtitle').textContent;
+  updateAlma(subtxt);
+  if (state.voiceActive) {
+    speakQueue([subtxt, 'Di siguiente o pulsa el botón para continuar.'], 0.88, function() {
+      var btnUnlock = document.getElementById('unlockBtn');
+      if (btnUnlock) btnUnlock.focus();
+      iniciarRecognition();
+    });
+  }
   throwStars(12);
   celebrate();
 }
 
 function continueAfterUnlock() {
+  unlockPendiente = null;
   document.getElementById('unlockScreen').classList.remove('show');
   document.getElementById('retoCard').style.display = 'block';
   loadReto();
@@ -2334,7 +2368,7 @@ function showVictory() {
 
 function mostrarPantallaVictoria() {
   document.getElementById('nivelCuriosidad').classList.remove('show');
-  var vtxt = '¡Misión completada! Ya eres Ingeniera de Números. Has pasado por Despegue, Órbita y Galaxia. Los números no tienen secretos para ti. ¡Guarda este logro!';
+  var vtxt = '¡Misión completada! Ya eres un Genio de los Números. Has pasado por Despegue, Órbita y Galaxia. Los números no tienen secretos para ti. ¡Guarda este logro!';
   document.getElementById('victorySubtitle').textContent = vtxt;
   document.getElementById('victoryScreen').classList.add('show');
   updateAlma(vtxt);
@@ -2358,6 +2392,8 @@ function restartGame() {
   var prevRetos = retos;
   do { retos = pickRandomSet(); } while (retos === prevRetos && retosSets.length > 1);
 
+  nivelCuriosidadPendiente = null;
+  unlockPendiente = null;
   state = {
     retoIndex: 0, completados: 0, intentoActual: 0, fase: 'acceso',
     expertoUnlocked: false, genioUnlocked: false, aciertosNivel: 0,
@@ -2456,7 +2492,7 @@ function updateAlmaForReto(reto) {
     5: 'Estimar es una superpotencia. No necesitas el número exacto, solo el más cercano.',
     6: '🌟 ¡Galaxia! Esto ya es matemáticas de nivel espacial. ¿A por ello?',
     7: 'Dos pasos: suma primero, luego resta. Tómate tu tiempo.',
-    8: 'Último reto de la misión. ¡Demuestra que eres Ingeniera de Números!'
+    8: '¡Último reto de la misión! Demuestra que eres un Genio de los Números.'
   };
   updateAlma(msgs[state.retoIndex] || '¡Vamos allá!');
 }
@@ -2872,7 +2908,8 @@ function iniciarRecognition() {
           'empieza','empezar','comenzar','reiniciar','reinicia',
           'orbita','órbita','galaxia','despegue',
           'la primera','primera','la segunda','segunda',
-          'la tercera','tercera','la última','última'
+          'la tercera','tercera','la última','última',
+          'cancela','cancel','borrar','borra','sí','si','vale','venga'
         ];
         var esComandoExacto = comandosValidos.indexOf(transcript) !== -1;
 
@@ -3088,6 +3125,13 @@ function procesarComandoVoz(transcript, alternativas) {
       continuarDesdeNivelCuriosidad();
       return;
     }
+    // Si estamos en la pantalla de unlock (nivel desbloqueado), avanzar
+    if (unlockPendiente !== null) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      continueAfterUnlock();
+      return;
+    }
     var btnNext = document.getElementById('btnNext');
     if (btnNext && btnNext.classList.contains('show')) {
       speak('Muy bien, seguimos.');
@@ -3111,9 +3155,20 @@ function procesarComandoVoz(transcript, alternativas) {
       }
       return;
     }
-    if (transcript.includes('no') || transcript.includes('repite') || transcript.includes('mal')) {
+    if (transcript.includes('cancela') || transcript.includes('cancel') || transcript.includes('borrar') || transcript.includes('borra')) {
       voiceInputPendiente = null;
-      speak('De acuerdo. Di el número de nuevo.');
+      var inp2 = document.getElementById('textInput');
+      if (inp2) { inp2.value = ''; inp2.focus(); }
+      speak('Borrado. Di el número de nuevo cuando quieras.');
+      return;
+    }
+    if (transcript.includes('no') || transcript.includes('repite') || transcript.includes('mal') || transcript.includes('error')) {
+      voiceInputPendiente = null;
+      speak('De acuerdo. Escucha de nuevo la pregunta.');
+      setTimeout(function() {
+        var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
+        if (reto) leerRetoCompleto(reto);
+      }, 600);
       return;
     }
   }
@@ -3184,9 +3239,26 @@ function procesarComandoVoz(transcript, alternativas) {
     if (!isNaN(numero) && numero > 0) {
       var textoHablado = cifraAHablado(numero);
       voiceInputPendiente = numero;
-      speak('Has dicho: ' + textoHablado + '. Di sí para confirmar, o repite para intentarlo de nuevo.');
+      speak('Has dicho: ' + textoHablado + '. Di sí para confirmar, cancela para borrar e intentarlo de nuevo, o repite para escuchar la pregunta otra vez.');
       return;
     }
+  }
+
+  // ── 7. FALLBACK: palabra no reconocida — guiar según contexto ──────────
+  dbg('⚠️ transcript no reconocido: "' + transcript + '"');
+  var retoFb = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
+  if (nivelCuriosidadPendiente !== null) {
+    speak('Di siguiente para continuar, o repite para escuchar la curiosidad de nuevo.');
+  } else if (unlockPendiente !== null) {
+    speak('Di siguiente para continuar al siguiente nivel.');
+  } else if (document.getElementById('optionsGrid') && document.getElementById('optionsGrid').style.display !== 'none') {
+    speak('No te he entendido. Di la primera, la segunda, la tercera o la última para elegir. O di repite para escuchar las opciones de nuevo.');
+  } else if (document.getElementById('inputRow') && document.getElementById('inputRow').style.display !== 'none') {
+    speak('No te he entendido. Di el número de tu respuesta en voz alta. Por ejemplo: cuatro mil doscientos. O di repite para escuchar la pregunta de nuevo.');
+  } else if (state.fase === 'victoria') {
+    speak('Di volver a jugar para empezar de nuevo, o reiniciar para comenzar desde el principio.');
+  } else {
+    speak('No te he entendido. Di repite para escuchar de nuevo, o ayuda para saber qué puedes decir.');
   }
 }
 
@@ -3252,12 +3324,12 @@ function shareLogro() {
   // Título logro
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 36px sans-serif';
-  ctx.fillText('Ingeniera de Números', 400, 240);
+  ctx.fillText('Genio de los Números', 400, 240);
 
   // Subtítulo
   ctx.fillStyle = 'rgba(255,255,255,0.6)';
   ctx.font = '18px sans-serif';
-  ctx.fillText('La Fábrica de Números completado', 400, 278);
+    ctx.fillText('La Fábrica de Números completada', 400, 278);
 
   // Curso
   ctx.fillStyle = '#00c9b1';
