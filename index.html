@@ -378,11 +378,14 @@
   }
   .opt-letra {
     display: inline-flex; align-items: center; justify-content: center;
-    min-width: 32px; height: 32px;
+    min-width: 72px; height: 28px;
+    padding: 0 8px;
     background: rgba(120,80,255,0.35);
     border-radius: 8px;
-    font-size: 17px; font-weight: 900; color: #c8b4ff;
+    font-size: 12px; font-weight: 900; color: #c8b4ff;
+    letter-spacing: 0.03em;
     flex-shrink: 0;
+    text-transform: uppercase;
   }
   .option-btn.correct .opt-letra { background: rgba(78,255,158,0.3); color: #4eff9e; }
   .option-btn.wrong .opt-letra   { background: rgba(255,92,92,0.3);  color: #ff5c5c; }
@@ -1840,14 +1843,14 @@ function loadReto() {
 }
 
 function renderOpciones(reto) {
-  const letras = ['A','B','C','D'];
+  const etiquetas = ['Primera','Segunda','Tercera','Última'];
   const grid = document.getElementById('optionsGrid');
   grid.innerHTML = '';
   reto.opciones.forEach((op, i) => {
     const btn = document.createElement('button');
     btn.className = 'option-btn';
-    btn.innerHTML = '<span class="opt-letra">' + letras[i] + '</span><span class="opt-texto">' + op + '</span>';
-    btn.setAttribute('aria-label', letras[i] + ': ' + op);
+    btn.innerHTML = '<span class="opt-letra">' + etiquetas[i] + '</span><span class="opt-texto">' + op + '</span>';
+    btn.setAttribute('aria-label', etiquetas[i] + ': ' + op);
     btn.setAttribute('tabindex', '0');
     btn.onclick = () => checkOpcion(i, reto, btn);
     grid.appendChild(btn);
@@ -1856,9 +1859,7 @@ function renderOpciones(reto) {
   grid._keyHandler && document.removeEventListener('keydown', grid._keyHandler);
   grid._keyHandler = function(e) {
     if (document.getElementById('optionsGrid').style.display === 'none') return;
-    var letraIdx = {'a':0,'b':1,'c':2,'d':3};
-    var idx = letraIdx[e.key.toLowerCase()];
-    if (idx === undefined) idx = parseInt(e.key) - 1; // fallback numérico
+    var idx = parseInt(e.key) - 1; // teclas 1/2/3/4
     if (idx >= 0 && idx < reto.opciones.length) {
       e.preventDefault();
       var btns = document.querySelectorAll('.option-btn');
@@ -1869,7 +1870,7 @@ function renderOpciones(reto) {
       e.preventDefault();
       speak(reto.question);
       setTimeout(function() {
-        var letrasVoz = ['A','B','C','D']; var textoOpciones = reto.opciones.map(function(op, i) { return letrasVoz[i] + ': ' + op; }).join('. ');
+        var etiqVoz = ['Primera opción','Segunda opción','Tercera opción','Última opción']; var textoOpciones = reto.opciones.map(function(op, i) { return etiqVoz[i] + ': ' + op; }).join('. ');
         speak(textoOpciones);
       }, 1200);
     }
@@ -2071,14 +2072,14 @@ function cargarRepasoReto() {
 }
 
 function renderOpcionesRepaso(reto) {
-  var letras = ['A','B','C','D'];
+  var etiquetas = ['Primera','Segunda','Tercera','Última'];
   var grid = document.getElementById('optionsGrid');
   grid.innerHTML = '';
   reto.opciones.forEach(function(op, i) {
     var btn = document.createElement('button');
     btn.className = 'option-btn';
-    btn.innerHTML = '<span class="opt-letra">' + letras[i] + '</span><span class="opt-texto">' + op + '</span>';
-    btn.setAttribute('aria-label', letras[i] + ': ' + op);
+    btn.innerHTML = '<span class="opt-letra">' + etiquetas[i] + '</span><span class="opt-texto">' + op + '</span>';
+    btn.setAttribute('aria-label', etiquetas[i] + ': ' + op);
     btn.setAttribute('tabindex', '0');
     btn.onclick = function() { checkOpcionRepaso(i, reto, btn); };
     grid.appendChild(btn);
@@ -2638,7 +2639,7 @@ function leerRetoCompleto(reto) {
       }
       cola.push(textoOpcion);
     });
-    cola.push('Cuando quieras responder, di A, B, C o D.');
+    cola.push('Di la primera, la segunda, la tercera o la última para responder.');
     var nivelKey = reto.nivel;
     if (!nivelMagicaVisto[nivelKey]) {
       nivelMagicaVisto[nivelKey] = true;
@@ -2826,54 +2827,46 @@ function iniciarRecognition() {
 
     var rec = new SR();
     rec.lang = 'es-ES';
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.maxAlternatives = 3;
-
-    // SpeechGrammarList: decirle a Chrome el vocabulario exacto
-    // Reduce el umbral de confianza — clave para palabras cortas como "uno"
-    try {
-      var SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
-      if (SGL) {
-        var grammar = '#JSGF V1.0; grammar comandos; public <comando> = ' +
-          'a | b | c | d | ' +
-          'repite | ayuda | siguiente | continua | ' +
-          'empieza | empezar | comenzar | reiniciar | ' +
-          'orbita | galaxia | despegue | ' +
-          'si | no ;';
-        var lista = new SGL();
-        lista.addFromString(grammar, 1);
-        rec.grammars = lista;
-      }
-    } catch(ge) { /* navegador sin soporte, ignorar */ }
+    rec.continuous = true;      // CLAVE: no cortar tras silencio breve
+    rec.interimResults = true;  // CLAVE: capturar mientras habla, no solo al final
+    rec.maxAlternatives = 1;
 
     state.recognition = rec;
 
+    var _ultimoProcesado = '';
+    var _ultimoTimestamp = 0;
+
     rec.onresult = function(e) {
-      var result = e.results[e.results.length - 1];
-      // Log completo para diagnóstico — muestra confianza de cada alternativa
-      var logParts = [];
-      for (var ai = 0; ai < result.length; ai++) {
-        logParts.push('"' + result[ai].transcript + '" (conf:' + (result[ai].confidence || 0).toFixed(2) + ')');
+      for (var ri = e.resultIndex; ri < e.results.length; ri++) {
+        var result = e.results[ri];
+        var transcript = result[0].transcript.toLowerCase().trim();
+        var isFinal = result.isFinal;
+
+        dbg('🎤 RAW [' + (isFinal ? 'FINAL' : 'interim') + ']: "' + transcript + '" conf:' + (result[0].confidence||0).toFixed(2));
+
+        // Anti-duplicado: ignorar si es igual al último procesado en menos de 1.5s
+        var ahora = Date.now();
+        if (transcript === _ultimoProcesado && ahora - _ultimoTimestamp < 1500) continue;
+
+        // Procesar resultados finales siempre
+        // Procesar intermedios solo si son un comando corto claro (1 palabra)
+        var palabras = transcript.trim().split(/\s+/);
+        var esComandoCorto = palabras.length === 1 && transcript.length <= 8;
+
+        if (isFinal || esComandoCorto) {
+          _ultimoProcesado = transcript;
+          _ultimoTimestamp = ahora;
+          dbg('🎤 VOZ detectada: "' + transcript + '"');
+          procesarComandoVoz(transcript);
+        }
       }
-      dbg('🎤 RAW [' + (result.isFinal ? 'FINAL' : 'interim') + ']: ' + logParts.join(' | '));
-      if (!result.isFinal) return;
-      var transcripts = [];
-      for (var ai = 0; ai < result.length; ai++) {
-        transcripts.push(result[ai].transcript.toLowerCase().trim());
-      }
-      var transcript = transcripts[0];
-      dbg('🎤 VOZ detectada: "' + transcript + '"');
-      procesarComandoVoz(transcript, transcripts);
     };
 
     rec.onerror = function(e) {
       dbg('🎤 ERROR recognition: ' + e.error);
-      state.recognition = null;
-
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        // Permiso denegado — NO reintentar, es permanente
         state.voiceActive = false;
+        state.recognition = null;
         document.getElementById('btnVoice').setAttribute('aria-pressed', 'false');
         document.getElementById('voiceIndicator').classList.remove('show');
         var btnGrande = document.getElementById('btnActivarVoz');
@@ -2881,21 +2874,18 @@ function iniciarRecognition() {
         mostrarAvisoMicrofono();
         return;
       }
-
-      // Para cualquier otro error transitorio: reintentar
-      if (state.voiceActive) {
-        setTimeout(crearYArrancar, 800);
-      }
+      // Error transitorio: reiniciar
+      state.recognition = null;
+      if (state.voiceActive) setTimeout(crearYArrancar, 800);
     };
 
     rec.onend = function() {
-      dbg('🎤 recognition.onend — reiniciando...');
+      dbg('🎤 recognition.onend');
       state.recognition = null;
-      // Reiniciar siempre que la voz siga activa
-      // Pequeña pausa para no solapar con síntesis
-      if (state.voiceActive) {
-        var delay = window.speechSynthesis.speaking ? 600 : 200;
-        setTimeout(crearYArrancar, delay);
+      // Con continuous=true, onend solo ocurre si hay error o lo abortamos
+      // Reiniciar solo si voiceActive y Alma no está hablando
+      if (state.voiceActive && !window.speechSynthesis.speaking) {
+        setTimeout(crearYArrancar, 300);
       }
     };
 
@@ -2914,7 +2904,7 @@ function iniciarRecognition() {
     var esperarFin = setInterval(function() {
       if (!window.speechSynthesis.speaking) {
         clearInterval(esperarFin);
-        setTimeout(crearYArrancar, 300);
+        setTimeout(crearYArrancar, 500);
       }
     }, 200);
   } else {
@@ -2935,31 +2925,30 @@ function procesarComandoVoz(transcript, alternativas) {
   if (diagOverlay && diagOverlay.classList.contains('show')) {
     // Mapa igual que el de las opciones normales
     var tD = transcript.replace(/[.,!?¿¡]$/,'').trim();
-    var tDUp = tD.toUpperCase();
     var mapaD = {
-      'a':0,'la a':0,'opción a':0,'opcion a':0,
-      'b':1,'la b':1,'opción b':1,'opcion b':1,'ve':1,'be':1,
-      'c':2,'la c':2,'opción c':2,'opcion c':2,'se':2,'ce':2,
-      'd':3,'la d':3,'opción d':3,'opcion d':3,'de':3
+      'la primera':0,'primera':0,'primero':0,
+      'la segunda':1,'segunda':1,'segundo':1,
+      'la tercera':2,'tercera':2,'tercero':2,
+      'la última':3,'última':3,'ultimo':3,'la ultima':3,'cuarta':3,'cuarto':3
     };
     if (transcript.includes('repite') || transcript.includes('repetir')) {
       var nivelActual = diagNivelActual;
       var intentoActual = diagIntentoActual;
       if (nivelActual && diagPreguntas[nivelActual]) {
         var datos = diagPreguntas[nivelActual][intentoActual];
-        speakQueue([datos.question, datos.opciones.map(function(op, i) { return ['A','B','C','D'][i] + ': ' + op; }).join('. ')]);
+        speakQueue([datos.question, datos.opciones.map(function(op, i) { return ['Primera opción','Segunda opción','Tercera opción','Última opción'][i] + ': ' + op; }).join('. ')]);
       }
       return;
     }
     var idxD = mapaD[tD];
-    if (idxD === undefined) idxD = mapaD[tD.split(' ')[0]];
-    // Fallback: primera letra A/B/C/D
+    // Buscar si contiene palabra clave
     if (idxD === undefined) {
-      var letraD = tDUp.charAt(0);
-      if      (letraD === 'A') idxD = 0;
-      else if (letraD === 'B') idxD = 1;
-      else if (letraD === 'C') idxD = 2;
-      else if (letraD === 'D') idxD = 3;
+      var clavesD = [['primera','primero'],['segunda','segundo'],['tercera','tercero'],['última','ultima','cuarta']];
+      outer2: for (var di = 0; di < clavesD.length; di++) {
+        for (var dj = 0; dj < clavesD[di].length; dj++) {
+          if (tD.indexOf(clavesD[di][dj]) !== -1) { idxD = di; break outer2; }
+        }
+      }
     }
     if (idxD !== undefined) {
       var btnsD = document.querySelectorAll('.diagnostico-opt');
@@ -2984,7 +2973,7 @@ function procesarComandoVoz(transcript, alternativas) {
       return;
     }
     // No reconocido en diagnostico — recordar opciones
-    speak('Di A, B, C o D para elegir tu respuesta. Si quieres escuchar la pregunta otra vez, di: repite.');
+    speak('Di la primera, la segunda, la tercera o la última para elegir. Si quieres escuchar de nuevo, di: repite.');
     return;
   }
 
@@ -3044,7 +3033,7 @@ function procesarComandoVoz(transcript, alternativas) {
     var mensajeAyuda;
     var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
     if (reto && reto.type === 'opcion') {
-      mensajeAyuda = 'Escucha la pregunta y di A, B, C o D para elegir. También puedes decir: repite, para escucharla de nuevo.';
+      mensajeAyuda = 'Escucha las opciones y di la primera, la segunda, la tercera o la última. También puedes decir: repite.';
     } else if (reto && reto.type === 'input') {
       mensajeAyuda = 'Escucha la pregunta y di el número de tu respuesta en voz alta. Por ejemplo, di cuatro mil novecientos. Di repite para escuchar la pregunta de nuevo.';
     } else if (state.fase === 'victoria') {
@@ -3097,40 +3086,48 @@ function procesarComandoVoz(transcript, alternativas) {
     }
   }
 
-  // ── 5. OPCIONES A/B/C/D ─────────────────────────────────────────────────
+  // ── 5. OPCIONES primera/segunda/tercera/última ───────────────────────────
   if (document.getElementById('optionsGrid').style.display !== 'none') {
     dbg('🔍 buscando opción en: "' + transcript + '"');
-    // Limpiar: quitar puntuación que Chrome añade a veces
     var t = transcript.replace(/[.,!?¿¡]$/,'').trim();
-    var tUp = t.toUpperCase();
+    var idxOpcion = undefined;
 
-    var mapaLetras = {
-      'a':0, 'la a':0, 'opción a':0, 'opcion a':0,
-      'b':1, 'la b':1, 'opción b':1, 'opcion b':1, 've':1, 'be':1,
-      'c':2, 'la c':2, 'opción c':2, 'opcion c':2, 'se':2, 'ce':2,
-      'd':3, 'la d':3, 'opción d':3, 'opcion d':3, 'de':3
+    // Mapa explícito — todas las formas naturales en que un niño puede decirlo
+    var mapa = {
+      'la primera':0, 'primera':0, 'primero':0, 'el primero':0, 'uno':0,
+      'la segunda':1, 'segunda':1, 'segundo':1, 'el segundo':1, 'dos':1,
+      'la tercera':2, 'tercera':2, 'tercero':2, 'el tercero':2, 'tres':2,
+      'la última':3,  'última':3,  'ultimo':3,  'la ultima':3,  'el último':3,
+      'cuatro':3, 'cuarta':3, 'cuarto':3, 'la cuarta':3
     };
 
-    var idxOpcion = mapaLetras[t];
+    // Buscar coincidencia exacta primero
+    idxOpcion = mapa[t];
 
-    // Si no matchea exacto, buscar si la transcripción empieza por A/B/C/D
+    // Si no, buscar si la transcripción CONTIENE alguna palabra clave
     if (idxOpcion === undefined) {
-      var letraInicial = tUp.charAt(0);
-      if      (letraInicial === 'A') idxOpcion = 0;
-      else if (letraInicial === 'B') idxOpcion = 1;
-      else if (letraInicial === 'C') idxOpcion = 2;
-      else if (letraInicial === 'D') idxOpcion = 3;
+      var claves = [
+        ['primera','primero'],
+        ['segunda','segundo'],
+        ['tercera','tercero'],
+        ['última','ultimo','ultima','cuarta','cuarto']
+      ];
+      outer: for (var ci = 0; ci < claves.length; ci++) {
+        for (var cj = 0; cj < claves[ci].length; cj++) {
+          if (t.indexOf(claves[ci][cj]) !== -1) {
+            idxOpcion = ci; break outer;
+          }
+        }
+      }
     }
 
     dbg('🔍 idxOpcion resuelto: ' + idxOpcion);
 
-    if (idxOpcion !== undefined && idxOpcion >= 0) {
+    if (idxOpcion !== undefined) {
       var btns = document.querySelectorAll('.option-btn');
       if (btns[idxOpcion] && !btns[idxOpcion].disabled) {
         btns[idxOpcion].click();
         return;
-      } else {
-        dbg('🔍 botón ' + idxOpcion + ' no disponible (disabled o no existe)');
       }
     }
   }
