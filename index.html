@@ -1467,14 +1467,14 @@ const retosSets = [
   },
   {
     nivel:'facil', nivelLabel:'Despegue', levelColor:'#00c9b1',
-    question:'Cuatro equipos del torneo tienen estas puntuaciones: Cóndores: 3.800 · Halcones: 1.950 · Águilas: 3.200 · Gorriones: 2.600. Ordénalos de menor a mayor.',
+    question:'En el torneo hay 4 equipos. Los Halcones tienen 1.950 puntos, los Gorriones 2.600, las Águilas 3.200 y los Cóndores 3.800. ¿Cuál es el orden de menor a mayor puntuación?',
     subLabel:'Elige el orden correcto',
     type:'opcion', leerOpcionesComoDigitos:false,
-    opciones:['Halcones · Gorriones · Águilas · Cóndores','Cóndores · Águilas · Gorriones · Halcones','Águilas · Cóndores · Halcones · Gorriones','Gorriones · Halcones · Cóndores · Águilas'], correcta:0,
-    feedback_ok:'¡Perfecto! 1.950 · 2.600 · 3.200 · 3.800. Los Halcones tienen mucho que remontar.',
-    feedback_err:'El número más pequeño empieza por 1. ¿Cuál es ese equipo?',
-    pista1:'¿Cuál es el número que empieza por 1? Ese equipo va el primero. ¿Cuál empieza por 2?',
-    pista2:'Ordena mirando el primer dígito de menor a mayor: 1, 2, 3, 3. Los dos que empiezan por 3: compara sus centenas.',
+    opciones:['Halcones, Gorriones, Águilas, Cóndores','Cóndores, Águilas, Gorriones, Halcones','Águilas, Halcones, Gorriones, Cóndores','Gorriones, Cóndores, Halcones, Águilas'], correcta:0,
+    feedback_ok:'¡Perfecto! De menor a mayor: Halcones 1.950, Gorriones 2.600, Águilas 3.200, Cóndores 3.800.',
+    feedback_err:'Fíjate: ¿cuál es el equipo con menos puntos? El número más pequeño empieza por 1.',
+    pista1:'Los Halcones tienen 1.950 — el menor. Los Gorriones 2.600 — el siguiente. ¿Y entre Águilas y Cóndores, cuál tiene más?',
+    pista2:'De menor a mayor: 1.950 va primero, luego 2.600, luego 3.200, luego 3.800. ¿Qué equipo tiene cada número?',
     curiosidad:'Los matemáticos llaman "orden ascendente" a ordenar de menor a mayor. ¡Es igual de útil que el descendente!'
   },
   {
@@ -1683,7 +1683,7 @@ function cargarPreguntaDiag(nivel, intento) {
 
   if (state.voiceActive) {
     speakQueue([datos.titulo, datos.intro, datos.question,
-      datos.opciones.map(function(op, i) { return 'Opción ' + (i+1) + ': ' + op; }).join('. ')
+      datos.opciones.map(function(op, i) { return ['Primera opción','Segunda opción','Tercera opción','Última opción'][i] + ': ' + op; }).join('. ')
     ]);
   }
 }
@@ -1891,7 +1891,10 @@ function checkOpcion(idx, reto, btn) {
     showFeedback(true, reto.feedback_ok);
     if (state.voiceActive) {
       window.speechSynthesis.cancel();
-      speak(limpiarParaVoz(reto.feedback_ok));
+      // Hablar solo confirmación breve — el feedback_ok puede tener números confusos
+      var confirmaciones = ['¡Correcto!','¡Muy bien!','¡Exacto!','¡Genial!','¡Perfecto!'];
+      var conf = confirmaciones[Math.floor(Math.random() * confirmaciones.length)];
+      speak(conf);
     }
     completeReto(reto);
   } else {
@@ -2354,9 +2357,13 @@ function restartGame() {
     skipUnlock: false, voiceActive: state.voiceActive, voiceQueue: [],
     pendientes: [], enRepaso: false, repasoQueue: [], intentoRepaso: 0
   };
+  // Ocultar TODAS las pantallas posibles antes de mostrar inicio
   document.getElementById('victoryScreen').classList.remove('show');
+  document.getElementById('nivelCuriosidad').classList.remove('show');
   document.getElementById('retoCard').style.display = 'none';
   document.getElementById('repasoBanner').classList.remove('show');
+  var unlockScreen = document.getElementById('unlockScreen');
+  if (unlockScreen) unlockScreen.classList.remove('show');
   document.getElementById('accesoRapido').style.display = 'block';
   document.getElementById('chipFacil').className = 'level-chip active';
   document.getElementById('chipExperto').className = 'level-chip locked';
@@ -2434,7 +2441,7 @@ function updateAlma(text) {
 
 function updateAlmaForReto(reto) {
   const msgs = {
-    0: '🚀 ¡Despegue iniciado! Escucha bien el número. ¡Tú puedes!',
+    0: '🚀 ¡Despegue iniciado! Fíjate bien en el número. ¡Tú puedes!',
     1: 'Cada cifra tiene su lugar. ¿Cuál es el valor de las centenas?',
     2: 'Ordenar números es como decidir quién va primero en la cola del recreo.',
     3: '🌙 ¡Órbita alcanzada! Ahora construyes números a partir de sus piezas.',
@@ -2628,14 +2635,15 @@ function leerRetoCompleto(reto) {
 
   if (reto.type === 'opcion') {
     reto.opciones.forEach(function(op, i) {
+      var etiqLabel = ['Primera opción','Segunda opción','Tercera opción','Última opción'][i] || ('Opción ' + (i+1));
       var textoOpcion;
       if (reto.leerOpcionesComoDigitos) {
         var soloNumero = op.replace(/\./g, '');
-        textoOpcion = 'Opción ' + (i + 1) + ': ' + soloNumero.split('').map(function(d) {
+        textoOpcion = etiqLabel + ': ' + soloNumero.split('').map(function(d) {
           return ['cero','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve'][parseInt(d)] || d;
         }).join(', ') + '.';
       } else {
-        textoOpcion = 'Opción ' + (i + 1) + ': ' + op + '.';
+        textoOpcion = etiqLabel + ': ' + op + '.';
       }
       cola.push(textoOpcion);
     });
@@ -2848,12 +2856,17 @@ function iniciarRecognition() {
         var ahora = Date.now();
         if (transcript === _ultimoProcesado && ahora - _ultimoTimestamp < 1500) continue;
 
-        // Procesar resultados finales siempre
-        // Procesar intermedios solo si son un comando corto claro (1 palabra)
-        var palabras = transcript.trim().split(/\s+/);
-        var esComandoCorto = palabras.length === 1 && transcript.length <= 8;
+        // Lista de comandos válidos completos — solo procesar interim si coincide exacto
+        var comandosValidos = [
+          'repite','ayuda','siguiente','continua','continúa',
+          'empieza','empezar','comenzar','reiniciar','reinicia',
+          'orbita','órbita','galaxia','despegue',
+          'la primera','primera','la segunda','segunda',
+          'la tercera','tercera','la última','última'
+        ];
+        var esComandoExacto = comandosValidos.indexOf(transcript) !== -1;
 
-        if (isFinal || esComandoCorto) {
+        if (isFinal || esComandoExacto) {
           _ultimoProcesado = transcript;
           _ultimoTimestamp = ahora;
           dbg('🎤 VOZ detectada: "' + transcript + '"');
@@ -2913,9 +2926,10 @@ function iniciarRecognition() {
 }
 
 function procesarComandoVoz(transcript, alternativas) {
+  // Ignorar transcripts demasiado cortos (ruido, vocales sueltas como "ó")
+  if (!transcript || transcript.length < 2) return;
   // Si viene con alternativas, intentar con cada una si la primera no da resultado
   if (alternativas && alternativas.length > 1) {
-    // Guardar para uso interno si la primera no funciona
     procesarComandoVoz._alternativas = alternativas.slice(1);
   } else {
     procesarComandoVoz._alternativas = [];
@@ -3116,6 +3130,20 @@ function procesarComandoVoz(transcript, alternativas) {
         for (var cj = 0; cj < claves[ci].length; cj++) {
           if (t.indexOf(claves[ci][cj]) !== -1) {
             idxOpcion = ci; break outer;
+          }
+        }
+      }
+    }
+
+    // Buscar si el transcript contiene parte del texto de alguna opción
+    if (idxOpcion === undefined && t.length >= 3) {
+      var retoActual = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
+      if (retoActual && retoActual.opciones) {
+        for (var oi = 0; oi < retoActual.opciones.length; oi++) {
+          var opTexto = retoActual.opciones[oi].toLowerCase();
+          // Buscar si la opción contiene el transcript o viceversa (mín 3 chars)
+          if (opTexto.indexOf(t) !== -1 || t.indexOf(opTexto.split(' ')[0]) !== -1) {
+            idxOpcion = oi; break;
           }
         }
       }
