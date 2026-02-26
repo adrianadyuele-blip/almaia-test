@@ -1700,7 +1700,10 @@ function checkDiagnostico(idx, btn) {
     fb.textContent = '✅ ' + datos.feedback_ok;
     fb.className = 'diagnostico-feedback show ok';
     if (state.voiceActive) {
-      speakQueue([datos.feedback_ok, '¡Acceso concedido!'], 0.88, function() {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      var refDiag = _refuerzos[Math.floor(Math.random() * _refuerzos.length)];
+      speakQueue([refDiag, '¡Acceso concedido!'], 0.88, function() {
         cerrarDiagnostico();
         confirmarAccesoRapido(datos.nivelDestino);
       });
@@ -1909,20 +1912,8 @@ function checkOpcion(idx, reto, btn) {
   if (correct) {
     btn.classList.add('correct');
     showFeedback(true, reto.feedback_ok);
-    if (state.voiceActive) {
-      window.speechSynthesis.cancel();
-      state.voiceQueue = [];
-      var refuerzos = [
-        '¡Correcto! Lo has conseguido.',
-        '¡Muy bien! Eso es exactamente.',
-        '¡Exacto! ¡Lo sabías!',
-        '¡Genial! Sin ninguna duda.',
-        '¡Perfecto! Así se hace.'
-      ];
-      var ref = refuerzos[Math.floor(Math.random() * refuerzos.length)];
-      speakQueue([ref], 0.88, function() { iniciarRecognition(); });
-    }
     completeReto(reto);
+    speakFeedbackCorrecto();
   } else {
     btn.classList.add('wrong');
     state.intentoActual++;
@@ -1978,18 +1969,12 @@ function checkInput() {
 
   if (correct) {
     showFeedback(true, reto.feedback_ok);
-    if (state.voiceActive) {
-      window.speechSynthesis.cancel();
-      state.voiceQueue = [];
-      var refuerzosI = ['¡Correcto! Lo has conseguido.','¡Muy bien! Eso es exactamente.','¡Exacto! ¡Lo sabías!','¡Genial! Sin ninguna duda.','¡Perfecto! Así se hace.'];
-      var refI = refuerzosI[Math.floor(Math.random() * refuerzosI.length)];
-      speakQueue([refI], 0.88, function() { iniciarRecognition(); });
-    }
     if (state.enRepaso) {
       completeRepasoReto(reto);
     } else {
       completeReto(reto);
     }
+    speakFeedbackCorrecto();
   } else {
     state.intentoActual++;
     if (state.enRepaso) {
@@ -2141,14 +2126,8 @@ function checkOpcionRepaso(idx, reto, btn) {
   if (correct) {
     btn.classList.add('correct');
     showFeedback(true, reto.feedback_ok);
-    if (state.voiceActive) {
-      window.speechSynthesis.cancel();
-      state.voiceQueue = [];
-      var refuerzosR = ['¡Correcto! Lo has conseguido.','¡Muy bien! Esta vez sí.','¡Exacto! ¡Lo tenías!','¡Genial! ¡Campeón!','¡Perfecto! Así se hace.'];
-      var refR = refuerzosR[Math.floor(Math.random() * refuerzosR.length)];
-      speakQueue([refR], 0.88, function() { iniciarRecognition(); });
-    }
     completeRepasoReto(reto);
+    speakFeedbackCorrecto();
   } else {
     btn.classList.add('wrong');
     state.intentoRepaso++;
@@ -2258,6 +2237,27 @@ function showFeedback(ok, text) {
   var box = document.getElementById('feedbackBox');
   box.textContent = (ok ? '✅ ' : '❌ ') + text;
   box.className = 'feedback-box show ' + (ok ? 'ok' : 'err');
+}
+
+// ── Refuerzo positivo + "¿Seguimos?" — usado en TODOS los casos de respuesta correcta ──
+var _refuerzos = [
+  '¡Correcto! Lo has conseguido.',
+  '¡Muy bien! Eso es exactamente.',
+  '¡Exacto! ¡Lo sabías!',
+  '¡Genial! Sin ninguna duda.',
+  '¡Perfecto! Así se hace.',
+  '¡Estupendo! Sigue así.',
+  '¡Eso es! ¡Qué bien!'
+];
+function speakFeedbackCorrecto(onDone) {
+  if (!state.voiceActive) { if (onDone) onDone(); return; }
+  window.speechSynthesis.cancel();
+  state.voiceQueue = [];
+  var ref = _refuerzos[Math.floor(Math.random() * _refuerzos.length)];
+  speakQueue([ref, '¿Seguimos?'], 0.88, function() {
+    iniciarRecognition();
+    if (onDone) onDone();
+  });
 }
 
 function showNext() {
@@ -2970,7 +2970,7 @@ function iniciarRecognition() {
 
         // Lista de comandos válidos completos — solo procesar interim si coincide exacto
         var comandosValidos = [
-          'repite','ayuda','siguiente','continua','continúa',
+          'repite','ayuda','siguiente','continua','continúa','seguimos','pasamos',
           'empieza','empezar','comenzar','reiniciar','reinicia',
           'orbita','órbita','galaxia','despegue',
           'la primera','primera','la segunda','segunda',
@@ -3182,68 +3182,85 @@ function procesarComandoVoz(transcript, alternativas) {
   }
 
   // ── 3. CONFIRMACIÓN DE INPUT POR VOZ — va ANTES que "siguiente/sí" ───────
-  // (crítico: "sí" debe confirmar el número antes de interpretarse como "siguiente")
   if (voiceInputPendiente !== null) {
-    if (transcript.includes('sí') || transcript === 'si' || transcript.includes('correcto') || transcript.includes('confirmo')) {
-      // Si hay cancelación pendiente de confirmar — "sí" confirma el cancel
-      if (state._cancelPendiente) {
+
+    // ── 3a. Esperando confirmar el CANCEL ──────────────────────────────────
+    if (state._cancelPendiente) {
+      if (transcript.includes('sí') || transcript === 'si' || transcript.includes('cancela') || transcript.includes('confirmo')) {
         state._cancelPendiente = false;
         voiceInputPendiente = null;
         var inp3 = document.getElementById('textInput');
         if (inp3) { inp3.value = ''; inp3.focus(); }
-        speak('Cancelado. Dime la respuesta nuevamente cuando quieras.');
+        speakQueue(['Cancelado. Dime la respuesta nuevamente.'], 0.88, function() {
+          iniciarRecognition();
+        });
         return;
       }
-      // Confirmar el número
+      if (transcript.includes('no')) {
+        state._cancelPendiente = false;
+        speakQueue(['De acuerdo. El número sigue siendo: ' + cifraAHablado(voiceInputPendiente) + '. Di sí para confirmar.'], 0.88, function() {
+          iniciarRecognition();
+        });
+        return;
+      }
+      // Cualquier otra cosa mientras espera confirmar cancel — repetir la pregunta
+      speakQueue(['Di sí para cancelar, o no para quedarte con el número ' + cifraAHablado(voiceInputPendiente) + '.'], 0.88, function() {
+        iniciarRecognition();
+      });
+      return;
+    }
+
+    // ── 3b. Esperando confirmar el NÚMERO ──────────────────────────────────
+    if (transcript.includes('sí') || transcript === 'si' || transcript.includes('correcto') || transcript.includes('confirmo')) {
       var inp = document.getElementById('textInput');
       if (inp && document.getElementById('inputRow').style.display !== 'none') {
         inp.value = String(voiceInputPendiente);
         voiceInputPendiente = null;
-        speak('Enviando tu respuesta.');
-        setTimeout(function() { checkInput(); }, 600);
+        speakQueue(['Enviando tu respuesta.'], 0.88, function() {
+          checkInput();
+        });
       }
       return;
     }
-    if (transcript.includes('no') && state._cancelPendiente) {
-      // No quiere cancelar — seguir con el número anterior
-      state._cancelPendiente = false;
-      speak('De acuerdo. El número sigue siendo: ' + cifraAHablado(voiceInputPendiente) + '. Di sí para confirmar o cancela para borrar.');
-      return;
-    }
     if (transcript.includes('cancela') || transcript.includes('cancel') || transcript.includes('borrar') || transcript.includes('borra')) {
-      // Pedir confirmación antes de cancelar
       state._cancelPendiente = true;
-      speak('¿Seguro que quieres cancelar? Di sí para confirmar el cancel, o no para quedarte con el número.');
+      speakQueue(['¿Seguro que quieres cancelar? Di sí para borrar, o no para quedarte con el número.'], 0.88, function() {
+        iniciarRecognition();
+      });
       return;
     }
-    if (transcript.includes('no') || transcript.includes('repite') || transcript.includes('mal') || transcript.includes('error')) {
+    if (transcript.includes('repite')) {
       voiceInputPendiente = null;
       state._cancelPendiente = false;
-      speak('De acuerdo. Escucha de nuevo la pregunta.');
-      setTimeout(function() {
-        var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
-        if (reto) leerRetoCompleto(reto);
-      }, 600);
+      var retoCancela = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
+      if (retoCancela) {
+        speakQueue(['De acuerdo. Escucha de nuevo.'], 0.88, function() {
+          leerRetoCompleto(retoCancela);
+        });
+      }
       return;
     }
-    // Número nuevo mientras hay uno pendiente — preguntar si reemplaza
+    // Número nuevo mientras hay uno pendiente — reemplaza directamente
     var numeroNuevo = habladoACifra(transcript);
     if (!isNaN(numeroNuevo) && numeroNuevo > 0) {
       voiceInputPendiente = numeroNuevo;
       state._cancelPendiente = false;
-      var textoNuevo = cifraAHablado(numeroNuevo);
-      speak('He entendido: ' + textoNuevo + '. Di sí para confirmar, cancela para borrar, o repite para escuchar la pregunta.');
+      speakQueue(['He entendido: ' + cifraAHablado(numeroNuevo) + '. Di sí para confirmar, cancela para borrar, o repite para escuchar la pregunta.'], 0.88, function() {
+        iniciarRecognition();
+      });
       return;
     }
-    // Cualquier otra cosa — recordar opciones
-    speak('Di sí para confirmar ' + cifraAHablado(voiceInputPendiente) + ', cancela para borrar, o repite para escuchar la pregunta de nuevo.');
+    // Cualquier otra cosa — recordar opciones con el número actual
+    speakQueue(['Di sí para confirmar ' + cifraAHablado(voiceInputPendiente) + ', cancela para borrar, o repite para escuchar la pregunta.'], 0.88, function() {
+      iniciarRecognition();
+    });
     return;
   }
 
   // ── 4. SIGUIENTE / CONTINUAR ─────────────────────────────────────────────
-  // Nota: "sí" solo llega aquí si NO hay voiceInputPendiente (resuelto arriba)
   if (transcript.includes('siguiente') || transcript.includes('continuar') || transcript.includes('continúa') ||
-      transcript === 'sí' || transcript === 'si' || transcript === 'vale' || transcript === 'venga') {
+      transcript.includes('seguimos') || transcript.includes('pasamos') || transcript.includes('venga') ||
+      transcript === 'sí' || transcript === 'si' || transcript === 'vale') {
     if (nivelCuriosidadPendiente !== null) {
       window.speechSynthesis.cancel();
       state.voiceQueue = [];
