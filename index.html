@@ -3219,7 +3219,7 @@ var _piper = {
   pendingResolve: null,   // resolve de la Promise en curso
   pendingReject: null,    // reject de la Promise en curso
   // URL del modelo — cambiar a URL propia cuando esté en Hotmart/Lemon
-  modelUrl: 'onnx-community/mms-tts-spa'
+  modelUrl: 'Xenova/mms-tts-spa'
 };
 
 // ── Código del Worker como string — se instancia como Blob URL ────────────
@@ -3273,22 +3273,19 @@ self.onmessage = async function(e) {
   if (type === 'load') {
     try {
       self.postMessage({ type: 'status', msg: 'Cargando biblioteca...' });
-      const mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.2/dist/transformers.min.js');
+      // v2.17 — remoteHost funciona de forma fiable en esta versión
+      const mod = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js');
 
-      // Forzar jsDelivr como CDN — evita bloqueos CORS de huggingface.co
-      if (mod.env) {
-        mod.env.allowRemoteModels = true;
-        mod.env.remoteHost = 'https://huggingface.co';
-        mod.env.remotePathTemplate = '{model}/resolve/{revision}/';
-        // Usar caché del navegador (IndexedDB)
-        mod.env.useBrowserCache = true;
-        mod.env.allowLocalModels = false;
-      }
+      // Apuntar a jsDelivr para servir archivos del modelo sin CORS ni autenticación
+      mod.env.allowRemoteModels = true;
+      mod.env.useBrowserCache = true;
+      mod.env.allowLocalModels = false;
+      mod.env.remoteHost = 'https://huggingface.co/';
+      mod.env.remotePathTemplate = '{model}/resolve/{revision}/';
 
       self.postMessage({ type: 'status', msg: 'Cargando modelo de voz...' });
-      synth = await mod.pipeline('text-to-speech', modelUrl || 'onnx-community/mms-tts-spa', {
-        device: 'wasm',
-        dtype: 'fp32',
+      synth = await mod.pipeline('text-to-speech', modelUrl || 'Xenova/mms-tts-spa', {
+        quantized: false,
         progress_callback: (p) => {
           if (p.status === 'downloading') {
             const pct = p.total ? Math.round((p.loaded/p.total)*100) : 0;
