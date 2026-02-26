@@ -459,6 +459,30 @@
   .btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245,200,66,0.3); }
   .btn-next.show { display: block; animation: fadeSlideIn 0.3s ease; }
 
+  .btn-pista {
+    display: none; width: 100%; margin-top: 8px;
+    background: rgba(155,111,255,0.15);
+    border: 1px solid var(--purple); border-radius: 10px;
+    padding: 11px 0;
+    font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700;
+    color: var(--purple); cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn-pista:hover { background: rgba(155,111,255,0.28); }
+  .btn-pista.show { display: block; animation: fadeSlideIn 0.3s ease; }
+
+  .btn-pendiente {
+    display: none; width: 100%; margin-top: 6px;
+    background: rgba(255,92,92,0.1);
+    border: 1px solid var(--red-err); border-radius: 10px;
+    padding: 10px 0;
+    font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--red-err); cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+    transition: all 0.2s; opacity: 0.75;
+  }
+  .btn-pendiente:hover { opacity: 1; background: rgba(255,92,92,0.2); }
+  .btn-pendiente.show { display: block; animation: fadeSlideIn 0.3s ease; }
+
   /* ─── UNLOCK SCREEN ──────────────────────── */
   .unlock-screen {
     display: none;
@@ -868,6 +892,61 @@
     color: var(--gold);
     background: rgba(255,255,255,0.05);
   }
+
+  /* ── PAUSA ─────────────────────────────── */
+  .btn-pause-header {
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: var(--teal);
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+  }
+  .btn-pause-header:hover {
+    border-color: var(--teal);
+    background: rgba(0,201,177,0.08);
+  }
+  .btn-pause-header.paused {
+    color: var(--gold);
+    border-color: var(--gold);
+  }
+  .pause-overlay {
+    position: fixed; inset: 0;
+    background: rgba(5,14,30,0.92);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 3000;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .pause-overlay.show { opacity: 1; pointer-events: all; }
+  .pause-icon { font-size: 64px; margin-bottom: 20px; }
+  .pause-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px; font-weight: 700;
+    color: var(--teal);
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+  .pause-sub {
+    font-size: 14px; color: var(--white-dim);
+    letter-spacing: 1px; margin-bottom: 32px;
+  }
+  .btn-resume {
+    padding: 16px 48px;
+    background: linear-gradient(135deg, var(--teal-dim), var(--teal));
+    border: none; border-radius: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--blue-deep); cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 24px rgba(0,201,177,0.4);
+  }
+  .btn-resume:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(0,201,177,0.7); }
   .confirm-overlay {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.7);
@@ -1041,10 +1120,19 @@
       <button class="btn-icon" onclick="toggleVoice()" id="btnVoice" title="Alma Voz" aria-label="Activar o desactivar la voz de Alma" aria-pressed="false">
         🔊<span class="tooltip">Alma Voz</span>
       </button>
+      <button class="btn-pause-header" id="btnPause" onclick="togglePausa()" aria-label="Pausar o reanudar la actividad">⏸ Pausa</button>
       <button class="btn-restart-header" onclick="askRestart()" aria-label="Reiniciar el artefacto desde el principio">↺ Reiniciar</button>
       <div class="header-code">MAT-3-01</div>
     </div>
   </header>
+
+  <!-- PAUSA OVERLAY -->
+  <div class="pause-overlay" id="pauseOverlay" role="dialog" aria-modal="true" aria-label="Juego pausado">
+    <div class="pause-icon">⏸️</div>
+    <div class="pause-title">PAUSA</div>
+    <div class="pause-sub">Tu progreso está guardado. Cuando quieras seguir, pulsa el botón.</div>
+    <button class="btn-resume" onclick="togglePausa()" aria-label="Reanudar la actividad">▶ Reanudar</button>
+  </div>
 
   <!-- PROGRESO -->
   <div class="progress-section">
@@ -1142,8 +1230,9 @@
       <div class="curiosity-text" id="curiosityText"></div>
     </aside>
     <button class="btn-next" id="btnNext" onclick="nextReto()" aria-label="Continuar al siguiente reto">Siguiente reto →</button>
+    <button class="btn-pista" id="btnPista" onclick="pedirPista()" aria-label="Pedir pista">💡 Pedir pista</button>
+    <button class="btn-pendiente" id="btnPendiente" onclick="pedirDejarPendiente()" aria-label="Dejar para el repaso final">📌 Dejar para el final</button>
 
-  </div>
 
   <!-- VICTORY SCREEN -->
   <div class="victory-screen" id="victoryScreen">
@@ -1212,7 +1301,109 @@
       }
     } catch(e) {}
   }
+
+  // ── Fanfarria de paso de nivel (Despegue→Órbita / Órbita→Galaxia) ~3s ──
+  function playLevelUpMusic() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var now = ctx.currentTime;
+
+      function note(freq, start, dur, vol, type) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, now + start);
+        gain.gain.setValueAtTime(0, now + start);
+        gain.gain.linearRampToValueAtTime(vol || 0.18, now + start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+        osc.start(now + start);
+        osc.stop(now + start + dur + 0.05);
+      }
+
+      // Fanfarria ascendente — do, mi, sol, do alta, mi alta + acorde final
+      note(523.25, 0.00, 0.22);             // Do4
+      note(659.25, 0.22, 0.22);             // Mi4
+      note(783.99, 0.44, 0.22);             // Sol4
+      note(1046.5, 0.66, 0.45);             // Do5
+      note(1318.5, 1.10, 0.45);             // Mi5
+      // Acorde triunfal con dos osciladores
+      note(1046.5, 1.55, 0.70, 0.14, 'triangle');
+      note(1318.5, 1.55, 0.70, 0.14, 'triangle');
+      note(783.99, 1.55, 0.70, 0.10, 'triangle');
+      // Remate brillante
+      note(2093.0, 2.25, 0.40, 0.10, 'sine');
+      note(1567.0, 2.40, 0.35, 0.08, 'sine');
+      note(2093.0, 2.65, 0.50, 0.12, 'sine');
+    } catch(e) {}
+  }
+
+  // ── Tema de victoria completo ~5s ──────────────────────────────────────
+  function playVictoryMusic() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var now = ctx.currentTime;
+
+      function note(freq, start, dur, vol, type) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, now + start);
+        gain.gain.setValueAtTime(0, now + start);
+        gain.gain.linearRampToValueAtTime(vol || 0.18, now + start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+        osc.start(now + start);
+        osc.stop(now + start + dur + 0.05);
+      }
+
+      // Frase 1 — introducción ascendente
+      note(523.25, 0.00, 0.18);
+      note(587.33, 0.18, 0.18);
+      note(659.25, 0.36, 0.18);
+      note(783.99, 0.54, 0.36);
+      // Frase 2 — respuesta
+      note(783.99, 1.00, 0.18);
+      note(880.00, 1.18, 0.18);
+      note(1046.5, 1.36, 0.45);
+      // Frase 3 — escalada final
+      note(1046.5, 1.90, 0.15);
+      note(1174.7, 2.05, 0.15);
+      note(1318.5, 2.20, 0.15);
+      note(1567.0, 2.35, 0.55, 0.22);
+      // Gran acorde final con múltiples osciladores
+      note(523.25, 3.00, 1.20, 0.12, 'triangle');
+      note(659.25, 3.00, 1.20, 0.12, 'triangle');
+      note(783.99, 3.00, 1.20, 0.12, 'triangle');
+      note(1046.5, 3.00, 1.20, 0.16, 'triangle');
+      note(1318.5, 3.00, 1.20, 0.10, 'triangle');
+      // Destellos brillantes encima del acorde
+      note(2093.0, 3.10, 0.30, 0.08, 'sine');
+      note(2637.0, 3.25, 0.30, 0.06, 'sine');
+      note(2093.0, 3.50, 0.50, 0.09, 'sine');
+      note(3136.0, 3.70, 0.60, 0.05, 'sine');
+      // Nota de cierre
+      note(1046.5, 4.20, 0.60, 0.10, 'sine');
+    } catch(e) {}
+  }
+
   function celebrate() { launchConfetti(); playSuccessSound(); }
+
+  // ── Celebración de paso de nivel: más confeti + fanfarria ──
+  function celebrateNivel() {
+    launchConfetti();
+    // Segunda oleada de confeti con retardo
+    setTimeout(function() { launchConfetti(); }, 600);
+    playLevelUpMusic();
+  }
+
+  // ── Celebración de victoria: confeti masivo + tema completo ──
+  function celebrateVictoria() {
+    launchConfetti();
+    setTimeout(function() { launchConfetti(); }, 500);
+    setTimeout(function() { launchConfetti(); }, 1200);
+    playVictoryMusic();
+  }
   </script>
 <script>
 // ═══════════════════════════════════════
@@ -1743,20 +1934,20 @@ function cerrarDiagnostico() {
 
 function confirmarAccesoRapido(nivel) {
   document.getElementById('accesoRapido').style.display = 'none';
-  // Cancelar cualquier TTS pendiente antes de hablar el feedback
   window.speechSynthesis.cancel();
   state.voiceQueue = [];
   if (nivel === 'experto') {
     state.expertoUnlocked = true;
     state.skipUnlock = true;
-    // Contar los 3 retos de Despegue como completados para la barra
     state.completados = 3;
     document.getElementById('chipFacil').className = 'level-chip done';
     document.getElementById('chipExperto').className = 'level-chip active';
     var msg = '¡Demostrado! Directo a Órbita. Los números no tienen secretos para ti.';
     updateAlma(msg);
     if (state.voiceActive) {
-      speakQueue([msg], 0.88, function() { startGame(3); });
+      speakQueue([msg], 0.88, function() {
+        setTimeout(function() { startGame(3); }, 600);
+      });
     } else {
       startGame(3);
     }
@@ -1764,7 +1955,6 @@ function confirmarAccesoRapido(nivel) {
     state.expertoUnlocked = true;
     state.genioUnlocked = true;
     state.skipUnlock = true;
-    // Contar los 6 retos de Despegue+Órbita como completados
     state.completados = 6;
     document.getElementById('chipFacil').className = 'level-chip done';
     document.getElementById('chipExperto').className = 'level-chip done';
@@ -1772,7 +1962,9 @@ function confirmarAccesoRapido(nivel) {
     var msg2 = '¡Demostrado! Directo a Galaxia. ¡Esto ya es nivel espacial!';
     updateAlma(msg2);
     if (state.voiceActive) {
-      speakQueue([msg2], 0.88, function() { startGame(6); });
+      speakQueue([msg2], 0.88, function() {
+        setTimeout(function() { startGame(6); }, 600);
+      });
     } else {
       startGame(6);
     }
@@ -1832,6 +2024,12 @@ function loadReto() {
   document.getElementById('btnNext').classList.remove('show');
   document.getElementById('curiosityBox').classList.remove('show');
   document.getElementById('almaHint').classList.remove('show');
+
+  // Botones de pista y pendiente — visibles durante el reto, ocultos en repaso
+  var btnPista = document.getElementById('btnPista');
+  var btnPend = document.getElementById('btnPendiente');
+  if (btnPista) btnPista.classList[state.enRepaso ? 'remove' : 'add']('show');
+  if (btnPend) btnPend.classList[state.enRepaso ? 'remove' : 'add']('show');
 
   state.intentoActual = 0;
 
@@ -2021,6 +2219,45 @@ function mostrarHint(texto) {
   // para evitar solapamientos con el TTS del caller
 }
 
+// ── Pedir pista manualmente (botón o voz "pista") ──────────────────────────
+function pedirPista() {
+  var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
+  if (!reto) return;
+  var textoPista;
+  if (state.intentoActual === 0) {
+    textoPista = reto.pista1 || reto.feedback_err;
+    state.intentoActual = 1; // consumir intento — ya usó la pista
+  } else {
+    textoPista = reto.pista2 || reto.pista1 || reto.feedback_err;
+  }
+  mostrarHint(textoPista);
+  if (state.voiceActive) {
+    window.speechSynthesis.cancel();
+    state.voiceQueue = [];
+    speakQueue([textoPista], 0.88, function() { iniciarRecognition(); });
+  }
+}
+
+// ── Dejar pendiente manualmente (botón o voz "lo dejo"/"pendiente") ─────────
+function pedirDejarPendiente() {
+  // No disponible si ya está en repaso o si btnNext ya está visible (reto completado)
+  if (state.enRepaso) return;
+  if (document.getElementById('btnNext').classList.contains('show')) return;
+  if (state.voiceActive) {
+    window.speechSynthesis.cancel();
+    state.voiceQueue = [];
+    speakQueue([
+      'De acuerdo. Lo dejamos para repasar al final.',
+      'Di siguiente para continuar con el siguiente reto.'
+    ], 0.88, function() {
+      marcarPendiente();
+      iniciarRecognition();
+    });
+  } else {
+    marcarPendiente();
+  }
+}
+
 function marcarPendiente() {
   var idx = state.enRepaso ? state.repasoQueue[0] : state.retoIndex;
   if (state.pendientes.indexOf(idx) === -1) {
@@ -2028,7 +2265,9 @@ function marcarPendiente() {
   }
   updateProgressDots();
   updateAlma('No te preocupes, ¡al final lo repasamos juntos! Di siguiente cuando quieras continuar.');
-  // Mostrar btnNext — el niño/a decide cuando seguir, no avanzamos automáticamente
+  // Ocultar pista y pendiente
+  var bp = document.getElementById('btnPista'); if (bp) bp.classList.remove('show');
+  var bpe = document.getElementById('btnPendiente'); if (bpe) bpe.classList.remove('show');
   setTimeout(function() {
     document.getElementById('btnNext').classList.add('show');
   }, 800);
@@ -2227,7 +2466,9 @@ function completeReto(reto) {
   state.aciertosNivel++;
   updateProgress();
   throwStars();
-  // Sin curiosidad por reto — aparece al pasar de nivel
+  // Ocultar pista y pendiente al completar
+  var bp = document.getElementById('btnPista'); if (bp) bp.classList.remove('show');
+  var bpe = document.getElementById('btnPendiente'); if (bpe) bpe.classList.remove('show');
   setTimeout(function() {
     document.getElementById('btnNext').classList.add('show');
   }, 800);
@@ -2241,13 +2482,15 @@ function showFeedback(ok, text) {
 
 // ── Refuerzo positivo + "¿Seguimos?" — usado en TODOS los casos de respuesta correcta ──
 var _refuerzos = [
-  '¡Correcto! Lo has conseguido.',
-  '¡Muy bien! Eso es exactamente.',
-  '¡Exacto! ¡Lo sabías!',
-  '¡Genial! Sin ninguna duda.',
-  '¡Perfecto! Así se hace.',
-  '¡Estupendo! Sigue así.',
-  '¡Eso es! ¡Qué bien!'
+  '¡Correcto! Lo has conseguido. ¡Eres genial!',
+  '¡Muy bien! Eso es exactamente. Tu cerebro matemático está funcionando a tope.',
+  '¡Exacto! ¡Lo sabías! Esa respuesta estaba clarísima.',
+  '¡Genial! Sin ninguna duda. Así se demuestra que los números no te dan miedo.',
+  '¡Perfecto! Así se hace. Cada acierto te acerca más a ser un Genio de los Números.',
+  '¡Estupendo! Sigue así. La fábrica de números está muy orgullosa de ti.',
+  '¡Eso es! ¡Qué bien! Estás volando por el espacio matemático.',
+  '¡Increíble! Lo tenías completamente dominado. ¡A por el siguiente!',
+  '¡Sensacional! Tu mente va más rápida que un cohete. ¡Impresionante!'
 ];
 function speakFeedbackCorrecto(onDone) {
   if (!state.voiceActive) { if (onDone) onDone(); return; }
@@ -2322,15 +2565,15 @@ function mostrarNivelCuriosidad(nivel) {
   }, 300);
   if (state.voiceActive) {
     var textoPlano = datos.texto.replace(/<[^>]+>/g, '');
-    // Chrome corta utterances largas — dividir en frases para garantizar que se lee todo
     var frases = textoPlano.split(/(?<=[.!?])\s+/).filter(function(f) { return f.trim().length > 0; });
     if (frases.length === 0) frases = [textoPlano];
-    var cola = frases.concat(['¿Qué te ha parecido? Di siguiente o pulsa el botón para continuar.']);
-    speakQueue(cola, 0.88, function() {
+    // Pausa dramática inicial + pitch más alto para dar emoción a la curiosidad
+    var cola = ['¿Sabías que...'].concat(frases).concat(['¿Qué te ha parecido? Di siguiente o pulsa el botón para continuar.']);
+    speakQueue(cola, 0.82, function() {
       var btnCuriosidad = document.querySelector('.btn-nivel-curiosidad');
       if (btnCuriosidad) btnCuriosidad.focus();
       iniciarRecognition();
-    });
+    }, 1.7);  // pitch 1.7 — más expresivo que el 1.5 estándar
   }
 }
 
@@ -2396,7 +2639,7 @@ function mostrarPantallaUnlock(nivel) {
     });
   }
   throwStars(12);
-  celebrate();
+  celebrateNivel();
 }
 
 function continueAfterUnlock() {
@@ -2436,7 +2679,43 @@ function mostrarPantallaVictoria() {
   if (state.voiceActive) speak(vtxt);
   throwStars(20);
   updateProgress();
-  celebrate();
+  celebrateVictoria();
+}
+
+// ═══════════════════════════════════════
+// PAUSA / REANUDAR
+// ═══════════════════════════════════════
+var _pausado = false;
+
+function togglePausa() {
+  _pausado = !_pausado;
+  var overlay = document.getElementById('pauseOverlay');
+  var btn = document.getElementById('btnPause');
+
+  if (_pausado) {
+    // ── PAUSAR ──
+    overlay.classList.add('show');
+    btn.textContent = '▶ Continuar';
+    btn.classList.add('paused');
+    btn.setAttribute('aria-label', 'Reanudar la actividad');
+    // Detener TTS y mic sin perder el estado de voz
+    if (window.speechSynthesis) window.speechSynthesis.pause();
+    if (state.recognition) { try { state.recognition.abort(); } catch(e) {} state.recognition = null; }
+    dbg('⏸ Juego pausado');
+  } else {
+    // ── REANUDAR ──
+    overlay.classList.remove('show');
+    btn.textContent = '⏸ Pausa';
+    btn.classList.remove('paused');
+    btn.setAttribute('aria-label', 'Pausar la actividad');
+    // Reanudar TTS si había algo en curso
+    if (window.speechSynthesis) window.speechSynthesis.resume();
+    // Si la voz estaba activa, repetir la pantalla actual para reorientar al niño/a
+    if (state.voiceActive && state.fase !== 'acceso' && state.fase !== 'victoria') {
+      setTimeout(function() { repetirPantalla(); }, 400);
+    }
+    dbg('▶ Juego reanudado');
+  }
 }
 
 function askRestart() {
@@ -2452,6 +2731,13 @@ function confirmRestart() {
 function restartGame() {
   var prevRetos = retos;
   do { retos = pickRandomSet(); } while (retos === prevRetos && retosSets.length > 1);
+
+  // Cerrar pausa si estaba activa
+  _pausado = false;
+  document.getElementById('pauseOverlay').classList.remove('show');
+  var btnP = document.getElementById('btnPause');
+  if (btnP) { btnP.textContent = '⏸ Pausa'; btnP.classList.remove('paused'); }
+  if (window.speechSynthesis) window.speechSynthesis.resume();
 
   nivelCuriosidadPendiente = null;
   unlockPendiente = null;
@@ -2621,31 +2907,29 @@ function dbg(msg) {
 // ────────────────────────────────────────────────────────────────────────────
 
 // ── Cola de lectura: encadena textos sin solaparse ──────────────────────────
-function speakQueue(textos, rateOverride, onComplete) {
+function speakQueue(textos, rateOverride, onComplete, pitchOverride) {
   if (!state.voiceActive || !window.speechSynthesis) { dbg('speakQueue: voz inactiva o sin speechSynthesis'); return; }
   window.speechSynthesis.cancel();
-  state._speakingLock = false; // reset lock al iniciar cola nueva
+  state._speakingLock = false;
   if (state.recognition) {
     try { state.recognition.abort(); } catch(e) {}
     state.recognition = null;
   }
   state.voiceQueue = textos.filter(function(t) { return t && t.trim(); }).slice();
   dbg('speakQueue: ' + state.voiceQueue.length + ' textos en cola');
-  _speakNext(rateOverride || 0.58, onComplete);
+  _speakNext(rateOverride || 0.58, onComplete, pitchOverride || 1.5);
 }
 
-function _speakNext(rate, onComplete) {
-  // ── Semáforo: evita ejecuciones paralelas ────────────────────────────────
+function _speakNext(rate, onComplete, pitch) {
   if (state._speakingLock) { dbg('_speakNext: lock activo, ignorando llamada extra'); return; }
   state._speakingLock = true;
-  // ─────────────────────────────────────────────────────────────────────────
 
   if (!state.voiceActive || state.voiceQueue.length === 0) {
     state._speakingLock = false;
     dbg('_speakNext: cola vacía → llamando iniciarRecognition');
     setTimeout(function() {
       if (onComplete) {
-        onComplete(); // onComplete es responsable de llamar iniciarRecognition si lo necesita
+        onComplete();
       } else {
         if (state.voiceActive) iniciarRecognition();
       }
@@ -2657,12 +2941,11 @@ function _speakNext(rate, onComplete) {
   var utt = new SpeechSynthesisUtterance(text);
   utt.lang = 'es-ES';
   utt.rate = rate || 0.58;
-  utt.pitch = 1.5;
+  utt.pitch = pitch || 1.5;
   utt.volume = 0.95;
   var voz = getSoftVoice();
   if (voz) utt.voice = voz;
 
-  // Chrome necesita un ping periódico para no congelarse en páginas activas
   var pingInterval = setInterval(function() {
     if (!window.speechSynthesis.speaking) { clearInterval(pingInterval); return; }
     window.speechSynthesis.pause();
@@ -2673,13 +2956,13 @@ function _speakNext(rate, onComplete) {
     dbg('utt.onend disparado ✓');
     clearInterval(pingInterval);
     state._speakingLock = false;
-    _speakNext(rate, onComplete);
+    _speakNext(rate, onComplete, pitch);
   };
   utt.onerror = function(e) {
     dbg('utt.onerror: ' + (e.error || 'desconocido'));
     clearInterval(pingInterval);
     state._speakingLock = false;
-    _speakNext(rate, onComplete);
+    _speakNext(rate, onComplete, pitch);
   };
 
   if (!voz && window.speechSynthesis.getVoices().length === 0) {
@@ -2970,7 +3253,9 @@ function iniciarRecognition() {
 
         // Lista de comandos válidos completos — solo procesar interim si coincide exacto
         var comandosValidos = [
-          'repite','ayuda','siguiente','continua','continúa','seguimos','pasamos',
+          'repite','ayuda','pista','ayúdame','ayudame',
+          'lo dejo','dejar','pendiente','para el final',
+          'siguiente','continua','continúa','seguimos','pasamos',
           'empieza','empezar','comenzar','reiniciar','reinicia',
           'orbita','órbita','galaxia','despegue',
           'la primera','primera','la segunda','segunda',
@@ -3181,6 +3466,27 @@ function procesarComandoVoz(transcript, alternativas) {
     return;
   }
 
+  // ── 2b. PISTA por voz ───────────────────────────────────────────────────
+  if (transcript.includes('pista') || transcript.includes('ayúdame') || transcript.includes('ayudame')) {
+    if (!state.enRepaso && !document.getElementById('btnNext').classList.contains('show')) {
+      pedirPista();
+    } else {
+      speak('No hay pista disponible en este momento.');
+    }
+    return;
+  }
+
+  // ── 2c. DEJAR PENDIENTE por voz ────────────────────────────────────────
+  if (transcript.includes('lo dejo') || transcript.includes('dejar') || transcript.includes('pendiente') ||
+      transcript.includes('lo dejo para después') || transcript.includes('para el final')) {
+    if (!state.enRepaso && !document.getElementById('btnNext').classList.contains('show')) {
+      pedirDejarPendiente();
+    } else {
+      speak('No puedo dejar este reto pendiente ahora.');
+    }
+    return;
+  }
+
   // ── 3. CONFIRMACIÓN DE INPUT POR VOZ — va ANTES que "siguiente/sí" ───────
   if (voiceInputPendiente !== null) {
 
@@ -3291,11 +3597,15 @@ function procesarComandoVoz(transcript, alternativas) {
 
     // Mapa explícito — todas las formas naturales en que un niño puede decirlo
     var mapa = {
-      'la primera':0, 'primera':0, 'primero':0, 'el primero':0, 'uno':0,
-      'la segunda':1, 'segunda':1, 'segundo':1, 'el segundo':1, 'dos':1,
-      'la tercera':2, 'tercera':2, 'tercero':2, 'el tercero':2, 'tres':2,
-      'la última':3,  'última':3,  'ultimo':3,  'la ultima':3,  'el último':3,
-      'cuatro':3, 'cuarta':3, 'cuarto':3, 'la cuarta':3
+      'la primera':0, 'primera':0, 'primero':0, 'el primero':0,
+      'uno':0, 'la uno':0, 'el uno':0, 'opción uno':0, 'opción 1':0,
+      'la segunda':1, 'segunda':1, 'segundo':1, 'el segundo':1,
+      'dos':1, 'la dos':1, 'el dos':1, 'opción dos':1, 'opción 2':1,
+      'la tercera':2, 'tercera':2, 'tercero':2, 'el tercero':2,
+      'tres':2, 'la tres':2, 'el tres':2, 'opción tres':2, 'opción 3':2,
+      'la última':3, 'última':3, 'ultimo':3, 'la ultima':3, 'el último':3,
+      'cuatro':3, 'cuarta':3, 'cuarto':3, 'la cuarta':3,
+      'la cuatro':3, 'el cuatro':3, 'opción cuatro':3, 'opción 4':3
     };
 
     // Buscar coincidencia exacta primero
@@ -3349,7 +3659,14 @@ function procesarComandoVoz(transcript, alternativas) {
     if (!isNaN(numero) && numero > 0) {
       var textoHablado = cifraAHablado(numero);
       voiceInputPendiente = numero;
-      speak('Has dicho: ' + textoHablado + '. Di sí para confirmar, cancela para borrar e intentarlo de nuevo, o repite para escuchar la pregunta otra vez.');
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      speakQueue([
+        'Has dicho: ' + textoHablado + '.',
+        'Di sí para confirmar, cancela para borrar, o repite para escuchar la pregunta otra vez.'
+      ], 0.88, function() {
+        iniciarRecognition();
+      });
       return;
     }
   }
