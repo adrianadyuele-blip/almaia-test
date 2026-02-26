@@ -1089,22 +1089,60 @@
     <div style="font-size: 36px; margin-bottom: 8px; text-align:center;">🎙️</div>
     <div class="modal-title" style="text-align:center;">Voz de Alma — Configuración</div>
     <div class="modal-body">
-      <p style="color:var(--teal); font-size:13px;">Elige el motor de voz. Solo puede estar activo uno a la vez.</p>
+      <p style="color:var(--teal); font-size:13px;">Elige la voz. Solo puede estar activa una a la vez.</p>
 
-      <!-- ── SECCIÓN PIPER (voz local) ── -->
+      <!-- ── SECCIÓN VOCES DEL SISTEMA ── -->
       <div style="border:1px solid rgba(0,201,177,0.3); border-radius:10px; padding:14px; margin-bottom:16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--teal);letter-spacing:1px;margin-bottom:4px;">🔊 VOCES DEL DISPOSITIVO</div>
+        <div style="font-size:11px;color:var(--white-dim);margin-bottom:10px;">Sin internet, sin coste. La calidad depende de las voces instaladas en tu dispositivo.</div>
+
+        <label style="font-size:12px;color:var(--white-dim);letter-spacing:1px;display:block;margin-bottom:4px;">SELECCIONA UNA VOZ</label>
+        <select id="nativeVoiceSelect" style="
+          width:100%; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.2);
+          border-radius:8px; padding:8px 10px; color:var(--white); font-size:13px;
+          margin-bottom:10px; cursor:pointer;" onchange="nativeVozCambiar()">
+          <option value="">— Cargando voces... —</option>
+        </select>
+
+        <div style="display:flex;gap:8px;">
+          <button onclick="nativeVozProbar()" style="
+            flex:1; padding:9px; background:rgba(0,201,177,0.12);
+            border:1px solid var(--teal); border-radius:8px;
+            color:var(--teal); font-family:'Rajdhani',sans-serif;
+            font-size:12px; font-weight:700; letter-spacing:1px; cursor:pointer;">
+            🔊 Probar
+          </button>
+          <button id="nativeToggleBtn" onclick="nativeVozToggle()" style="
+            flex:1; padding:9px; border-radius:8px; border:none; cursor:pointer;
+            font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700;
+            letter-spacing:1px; background:#333; color:#888; transition:all 0.2s;">
+            OFF
+          </button>
+        </div>
+        <div id="nativeVozStatus" style="font-size:11px;color:var(--white-dim);margin-top:8px;min-height:16px;"></div>
+      </div>
+
+      <!-- ── SEPARADOR ── -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+        <span style="font-size:11px;color:var(--white-dim);letter-spacing:1px;">O BIEN</span>
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+      </div>
+
+      <!-- ── SECCIÓN PIPER (voz local descargable — requiere hosting) ── -->
+      <div style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px; margin-bottom:16px; opacity:0.7;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div>
-            <div style="font-size:13px;font-weight:700;color:var(--teal);letter-spacing:1px;">🎙️ VOZ LOCAL (recomendado)</div>
-            <div style="font-size:11px;color:var(--white-dim);margin-top:2px;">Sin internet, sin coste. Se descarga una vez (~40MB) y se guarda.</div>
+            <div style="font-size:13px;font-weight:700;color:var(--white-dim);letter-spacing:1px;">🎙️ VOZ LOCAL NEURONAL (Piper)</div>
+            <div style="font-size:11px;color:var(--white-dim);margin-top:2px;">Mejor calidad. Disponible cuando el juego esté hosteado.</div>
           </div>
           <button id="piperToggleBtn" onclick="piperToggleActivo()" style="
             padding:6px 16px; border-radius:20px; border:none; cursor:pointer;
             font-size:12px; font-weight:700; letter-spacing:1px;
             background:#333; color:#888; transition:all 0.2s; white-space:nowrap; margin-left:10px;">OFF</button>
         </div>
-        <div id="piperStatus" style="font-size:12px;color:var(--white-dim);min-height:18px;">
-          Pulsa ON para descargar la voz la primera vez.
+        <div id="piperStatus" style="font-size:11px;color:var(--white-dim);min-height:16px;">
+          Actívalo cuando el juego esté en Hotmart/Lemon.
         </div>
       </div>
 
@@ -3176,11 +3214,17 @@ function elToggleActivo() {
     btn.style.color = 'var(--blue-deep)';
     elSetStatus('ok', 'ElevenLabs activo — ' + _el.voiceName);
     dbg('EL activado: ' + _el.voiceName);
-    // Desactivar Piper si estaba activo — solo un motor a la vez
+    // Desactivar Piper y native si estaban activos — solo un motor a la vez
     if (_piper.activo) {
       _piper.activo = false;
       _piperActualizarToggle();
       dbg('Piper desactivado automáticamente — EL tiene prioridad');
+    }
+    if (_native.activo) {
+      _native.activo = false;
+      var nBtn = document.getElementById('nativeToggleBtn');
+      if (nBtn) { nBtn.textContent = 'OFF'; nBtn.style.background = '#333'; nBtn.style.color = '#888'; }
+      dbg('Voz nativa desactivada — EL tiene prioridad');
     }
   } else {
     btn.textContent = 'OFF';
@@ -3481,16 +3525,162 @@ function piperToggleActivo() {
     if (btnConfig2) btnConfig2.style.color = 'var(--teal)';
     dbg('Piper activado');
   }
-  // Desactivar EL si estaba activo — solo un motor a la vez
+  // Desactivar EL y native si estaban activos — solo un motor a la vez
   if (_el.activo && _piper.activo) {
     _el.activo = false;
     var elBtn = document.getElementById('elToggleBtn');
     if (elBtn) { elBtn.textContent = 'OFF'; elBtn.style.background = '#333'; elBtn.style.color = '#888'; }
     dbg('EL desactivado automáticamente — Piper tiene prioridad');
   }
+  if (_native.activo && _piper.activo) {
+    _native.activo = false;
+    var nBtn2 = document.getElementById('nativeToggleBtn');
+    if (nBtn2) { nBtn2.textContent = 'OFF'; nBtn2.style.background = '#333'; nBtn2.style.color = '#888'; }
+    dbg('Voz nativa desactivada — Piper tiene prioridad');
+  }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SELECTOR DE VOZ NATIVA — elige entre todas las voces del dispositivo
+// Integración: paralela a _el y _piper. Solo _speakNext decide qué usar.
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _native = {
+  activo: false,      // true = usar la voz seleccionada manualmente
+  vozObj: null,       // SpeechSynthesisVoice seleccionada
+  vozNombre: ''
+};
+
+function nativeVozPoblarSelect() {
+  var select = document.getElementById('nativeVoiceSelect');
+  if (!select) return;
+  var voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return;
+
+  select.innerHTML = '<option value="">— Elige una voz —</option>';
+
+  // Separar voces en español y el resto
+  var esVoices = voices.filter(function(v) { return v.lang.startsWith('es'); });
+  var otrasVoices = voices.filter(function(v) { return !v.lang.startsWith('es'); });
+
+  if (esVoices.length > 0) {
+    var grpEs = document.createElement('optgroup');
+    grpEs.label = '— Español —';
+    esVoices.forEach(function(v, i) {
+      var opt = document.createElement('option');
+      opt.value = i + '_es';
+      opt.dataset.name = v.name;
+      opt.textContent = v.name + ' (' + v.lang + ')' + (v.localService ? ' ★' : '');
+      grpEs.appendChild(opt);
+    });
+    select.appendChild(grpEs);
+  }
+
+  if (otrasVoices.length > 0) {
+    var grpOtras = document.createElement('optgroup');
+    grpOtras.label = '— Otros idiomas —';
+    otrasVoices.forEach(function(v, i) {
+      var opt = document.createElement('option');
+      opt.value = i + '_other';
+      opt.dataset.name = v.name;
+      opt.textContent = v.name + ' (' + v.lang + ')' + (v.localService ? ' ★' : '');
+      grpOtras.appendChild(opt);
+    });
+    select.appendChild(grpOtras);
+  }
+
+  // Pre-seleccionar la mejor voz en español si existe
+  var mejorEs = esVoices.find(function(v) {
+    return v.localService && (v.name.includes('ó') || v.name.toLowerCase().includes('monica') ||
+           v.name.toLowerCase().includes('lucia') || v.name.toLowerCase().includes('jorge'));
+  }) || esVoices.find(function(v) { return v.localService; }) || esVoices[0];
+
+  if (mejorEs) {
+    var opts = select.querySelectorAll('option');
+    for (var i = 0; i < opts.length; i++) {
+      if (opts[i].dataset.name === mejorEs.name) {
+        select.value = opts[i].value;
+        _native.vozObj = mejorEs;
+        _native.vozNombre = mejorEs.name;
+        document.getElementById('nativeVozStatus').textContent = '★ = voz local del dispositivo (mejor calidad)';
+        break;
+      }
+    }
+  }
+}
+
+function nativeVozCambiar() {
+  var select = document.getElementById('nativeVoiceSelect');
+  var selectedName = select.options[select.selectedIndex] ? select.options[select.selectedIndex].dataset.name : '';
+  if (!selectedName) { _native.vozObj = null; _native.vozNombre = ''; return; }
+  var voices = window.speechSynthesis.getVoices();
+  _native.vozObj = voices.find(function(v) { return v.name === selectedName; }) || null;
+  _native.vozNombre = selectedName;
+  dbg('Voz nativa seleccionada: ' + selectedName);
+}
+
+function nativeVozProbar() {
+  if (!_native.vozObj) {
+    document.getElementById('nativeVozStatus').textContent = 'Selecciona una voz primero';
+    return;
+  }
+  window.speechSynthesis.cancel();
+  var utt = new SpeechSynthesisUtterance('Hola, soy Alma. ¿Estás lista o listo para la misión matemática?');
+  utt.voice = _native.vozObj;
+  utt.lang = _native.vozObj.lang;
+  utt.rate = 0.88;
+  utt.pitch = 1.5;
+  utt.volume = 0.95;
+  utt.onend = function() {
+    document.getElementById('nativeVozStatus').textContent = '¿Cómo ha sonado? Si te gusta, actívala con ON.';
+  };
+  window.speechSynthesis.speak(utt);
+  document.getElementById('nativeVozStatus').textContent = 'Reproduciendo...';
+}
+
+function nativeVozToggle() {
+  if (!_native.vozObj) {
+    document.getElementById('nativeVozStatus').textContent = 'Selecciona una voz primero';
+    return;
+  }
+  _native.activo = !_native.activo;
+  var btn = document.getElementById('nativeToggleBtn');
+  if (_native.activo) {
+    btn.textContent = 'ON';
+    btn.style.background = 'var(--teal)';
+    btn.style.color = 'var(--blue-deep)';
+    document.getElementById('nativeVozStatus').textContent = 'Activa: ' + _native.vozNombre;
+    dbg('Voz nativa activada: ' + _native.vozNombre);
+    // Desactivar EL y Piper — solo un motor a la vez
+    if (_el.activo) {
+      _el.activo = false;
+      var elBtn = document.getElementById('elToggleBtn');
+      if (elBtn) { elBtn.textContent = 'OFF'; elBtn.style.background = '#333'; elBtn.style.color = '#888'; }
+    }
+    if (_piper.activo) {
+      _piper.activo = false;
+      _piperActualizarToggle();
+    }
+  } else {
+    btn.textContent = 'OFF';
+    btn.style.background = '#333';
+    btn.style.color = '#888';
+    document.getElementById('nativeVozStatus').textContent = 'Desactivada — usando voz por defecto';
+    dbg('Voz nativa desactivada');
+  }
+  var btnConfig = document.getElementById('btnVozConfig');
+  if (btnConfig) btnConfig.style.color = (_el.activo || _piper.activo || _native.activo) ? 'var(--teal)' : '';
+}
+
+// Poblar voces cuando estén disponibles
+window.speechSynthesis.onvoiceschanged = function() { nativeVozPoblarSelect(); };
+// Intentar poblar ya (algunas plataformas las tienen sincrónicas)
+if (window.speechSynthesis.getVoices().length > 0) { nativeVozPoblarSelect(); }
+
 function getSoftVoice() {
+  // Si hay voz nativa seleccionada manualmente, usarla
+  if (_native.activo && _native.vozObj) return _native.vozObj;
+  // Si no, comportamiento original
   var voices = window.speechSynthesis.getVoices();
   var preferred = ['Mónica', 'Monica'];
   for (var i = 0; i < preferred.length; i++) {
