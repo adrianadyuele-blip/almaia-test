@@ -3115,39 +3115,12 @@ function procesarComandoVoz(transcript, alternativas) {
     return;
   }
 
-  // ── 3. SIGUIENTE / CONTINUAR / SÍ ──────────────────────────────────────
-  if (transcript.includes('siguiente') || transcript.includes('continuar') || transcript.includes('continúa') ||
-      transcript === 'sí' || transcript === 'si' || transcript === 'vale' || transcript === 'venga') {
-    // Si estamos en la pantalla de curiosidad de nivel, avanzar
-    if (nivelCuriosidadPendiente !== null) {
-      window.speechSynthesis.cancel();
-      state.voiceQueue = [];
-      continuarDesdeNivelCuriosidad();
-      return;
-    }
-    // Si estamos en la pantalla de unlock (nivel desbloqueado), avanzar
-    if (unlockPendiente !== null) {
-      window.speechSynthesis.cancel();
-      state.voiceQueue = [];
-      continueAfterUnlock();
-      return;
-    }
-    var btnNext = document.getElementById('btnNext');
-    if (btnNext && btnNext.classList.contains('show')) {
-      speak('Muy bien, seguimos.');
-      setTimeout(function() { nextReto(); }, 800);
-    } else {
-      speak('Todavía no podemos seguir. Responde la pregunta primero. Di repite si quieres escucharla de nuevo.');
-    }
-    return;
-  }
-
-  // ── 4. CONFIRMACIÓN DE INPUT POR VOZ ───────────────────────────────────
+  // ── 3. CONFIRMACIÓN DE INPUT POR VOZ — va ANTES que "siguiente/sí" ───────
+  // (crítico: "sí" debe confirmar el número antes de interpretarse como "siguiente")
   if (voiceInputPendiente !== null) {
     if (transcript.includes('sí') || transcript === 'si' || transcript.includes('correcto') || transcript.includes('confirmo')) {
-      // Confirmar — insertar en el input y enviar
       var inp = document.getElementById('textInput');
-      if (inp && inp.style && document.getElementById('inputRow').style.display !== 'none') {
+      if (inp && document.getElementById('inputRow').style.display !== 'none') {
         inp.value = String(voiceInputPendiente);
         voiceInputPendiente = null;
         speak('Enviando tu respuesta.');
@@ -3171,6 +3144,35 @@ function procesarComandoVoz(transcript, alternativas) {
       }, 600);
       return;
     }
+    // Si hay número pendiente y dice otra cosa — recordar opciones
+    speak('Di sí para confirmar, cancela para borrar, o repite para escuchar la pregunta de nuevo.');
+    return;
+  }
+
+  // ── 4. SIGUIENTE / CONTINUAR ─────────────────────────────────────────────
+  // Nota: "sí" solo llega aquí si NO hay voiceInputPendiente (resuelto arriba)
+  if (transcript.includes('siguiente') || transcript.includes('continuar') || transcript.includes('continúa') ||
+      transcript === 'sí' || transcript === 'si' || transcript === 'vale' || transcript === 'venga') {
+    if (nivelCuriosidadPendiente !== null) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      continuarDesdeNivelCuriosidad();
+      return;
+    }
+    if (unlockPendiente !== null) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      continueAfterUnlock();
+      return;
+    }
+    var btnNext = document.getElementById('btnNext');
+    if (btnNext && btnNext.classList.contains('show')) {
+      speak('Muy bien, seguimos.');
+      setTimeout(function() { nextReto(); }, 800);
+    } else {
+      speak('Todavía no podemos seguir. Responde la pregunta primero. Di repite si quieres escucharla de nuevo.');
+    }
+    return;
   }
 
   // ── 5. OPCIONES primera/segunda/tercera/última ───────────────────────────
