@@ -1855,6 +1855,7 @@ function loadReto() {
   updateAlmaForReto(reto);
   updateProgressDots();
   voiceInputPendiente = null; // limpiar confirmación pendiente
+  state._cancelPendiente = false;
   if (state.voiceActive) {
     // Pequeña pausa para que el DOM se estabilice antes de leer
     setTimeout(function() { leerRetoCompleto(reto); }, 200);
@@ -1910,23 +1911,31 @@ function checkOpcion(idx, reto, btn) {
     showFeedback(true, reto.feedback_ok);
     if (state.voiceActive) {
       window.speechSynthesis.cancel();
-      // Hablar solo confirmación breve — el feedback_ok puede tener números confusos
-      var confirmaciones = ['¡Correcto!','¡Muy bien!','¡Exacto!','¡Genial!','¡Perfecto!'];
-      var conf = confirmaciones[Math.floor(Math.random() * confirmaciones.length)];
-      speak(conf);
+      state.voiceQueue = [];
+      var refuerzos = [
+        '¡Correcto! Lo has conseguido.',
+        '¡Muy bien! Eso es exactamente.',
+        '¡Exacto! ¡Lo sabías!',
+        '¡Genial! Sin ninguna duda.',
+        '¡Perfecto! Así se hace.'
+      ];
+      var ref = refuerzos[Math.floor(Math.random() * refuerzos.length)];
+      speakQueue([ref], 0.88, function() { iniciarRecognition(); });
     }
     completeReto(reto);
   } else {
     btn.classList.add('wrong');
-    // Intento 1: NO mostrar la correcta en verde — solo marcar el error
     state.intentoActual++;
 
     if (state.intentoActual === 1) {
-      // Intento 1: mostrar pista, re-habilitar botones tras 3.5s
-      // mostrarHint ya habla la pista — no llamar speak adicional
+      // Intento 1: pista, limpiar botones tras pausa, NO mostrar correcta
       window.speechSynthesis.cancel();
       state.voiceQueue = [];
-      mostrarHint(reto.pista1 || reto.feedback_err);
+      var pista = reto.pista1 || reto.feedback_err;
+      mostrarHint(pista);
+      if (state.voiceActive) {
+        speakQueue([pista], 0.88, function() { iniciarRecognition(); });
+      }
       setTimeout(function() {
         allBtns.forEach(function(b) {
           b.disabled = false;
@@ -1934,12 +1943,24 @@ function checkOpcion(idx, reto, btn) {
         });
       }, 3500);
     } else {
-      // Intento 2: mostrar respuesta correcta + avanzar como pendiente
+      // Intento 2: mostrar correcta, dar segunda pista por voz, luego mostrar btnNext para que decida
       allBtns[reto.correcta].classList.add('correct');
-      mostrarHint(reto.pista2 || reto.feedback_err);
-      setTimeout(function() {
-        marcarPendiente();
-      }, 4000);
+      var pista2 = reto.pista2 || reto.feedback_err;
+      mostrarHint(pista2);
+      if (state.voiceActive) {
+        window.speechSynthesis.cancel();
+        state.voiceQueue = [];
+        speakQueue([
+          pista2,
+          'La respuesta correcta era: ' + reto.opciones[reto.correcta] + '.',
+          'Vamos a dejarla para repasar al final. Di siguiente para continuar.'
+        ], 0.88, function() {
+          marcarPendiente();
+          iniciarRecognition();
+        });
+      } else {
+        setTimeout(function() { marcarPendiente(); }, 4000);
+      }
     }
   }
 }
@@ -1957,6 +1978,13 @@ function checkInput() {
 
   if (correct) {
     showFeedback(true, reto.feedback_ok);
+    if (state.voiceActive) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      var refuerzosI = ['¡Correcto! Lo has conseguido.','¡Muy bien! Eso es exactamente.','¡Exacto! ¡Lo sabías!','¡Genial! Sin ninguna duda.','¡Perfecto! Así se hace.'];
+      var refI = refuerzosI[Math.floor(Math.random() * refuerzosI.length)];
+      speakQueue([refI], 0.88, function() { iniciarRecognition(); });
+    }
     if (state.enRepaso) {
       completeRepasoReto(reto);
     } else {
@@ -1967,57 +1995,58 @@ function checkInput() {
     if (state.enRepaso) {
       manejarErrorRepaso(reto, inp);
     } else if (state.intentoActual === 1) {
-      mostrarHint(reto.pista1 || reto.feedback_err);
+      var pista1i = reto.pista1 || reto.feedback_err;
+      mostrarHint(pista1i);
+      if (state.voiceActive) {
+        window.speechSynthesis.cancel();
+        state.voiceQueue = [];
+        speakQueue([pista1i], 0.88, function() { iniciarRecognition(); });
+      }
       setTimeout(function() {
         inp.className = 'text-input';
         inp.value = '';
         inp.focus();
       }, 4500);
     } else {
-      mostrarHint(reto.pista2 || reto.feedback_err);
-      setTimeout(function() { marcarPendiente(); }, 4000);
+      var pista2i = reto.pista2 || reto.feedback_err;
+      mostrarHint(pista2i);
+      if (state.voiceActive) {
+        window.speechSynthesis.cancel();
+        state.voiceQueue = [];
+        speakQueue([
+          pista2i,
+          'La respuesta correcta era: ' + reto.correctas[0] + '.',
+          'Vamos a dejarla para repasar al final. Di siguiente para continuar.'
+        ], 0.88, function() {
+          marcarPendiente();
+          iniciarRecognition();
+        });
+      } else {
+        setTimeout(function() { marcarPendiente(); }, 4000);
+      }
     }
   }
-  if (state.voiceActive && correct) {
-    window.speechSynthesis.cancel();
-    speak(limpiarParaVoz(reto.feedback_ok));
-  }
-  // Para el caso de error, mostrarHint ya gestiona la voz — no hablar aquí
 }
 
 function mostrarHint(texto) {
   var hint = document.getElementById('almaHint');
   document.getElementById('almaHintText').textContent = texto;
   hint.classList.add('show');
-  if (state.voiceActive) {
-    // Limpiar cola y hablar pista de forma natural, sin "Pista:"
-    setTimeout(function() {
-      window.speechSynthesis.cancel();
-      state.voiceQueue = [];
-      speak(limpiarParaVoz(texto));
-    }, 400);
-  }
+  // NO hablar aquí — quien llama a mostrarHint gestiona la voz con speakQueue
+  // para evitar solapamientos con el TTS del caller
 }
 
 function marcarPendiente() {
-  var idx = state.retoIndex;
+  var idx = state.enRepaso ? state.repasoQueue[0] : state.retoIndex;
   if (state.pendientes.indexOf(idx) === -1) {
     state.pendientes.push(idx);
   }
   updateProgressDots();
-  updateAlma('No te preocupes, ¡al final lo repasamos juntos! Seguimos con el siguiente reto.');
-  // Deshabilitar input mientras esperamos
-  var inp = document.getElementById('textInput');
-  if (inp) inp.disabled = true;
-  // Avanzar automáticamente tras 2.5s — no necesita botón
+  updateAlma('No te preocupes, ¡al final lo repasamos juntos! Di siguiente cuando quieras continuar.');
+  // Mostrar btnNext — el niño/a decide cuando seguir, no avanzamos automáticamente
   setTimeout(function() {
-    if (inp) inp.disabled = false;
-    state.retoIndex++;
-    document.getElementById('almaHint').classList.remove('show');
-    document.getElementById('feedbackBox').classList.remove('show', 'ok', 'err');
-    loadReto();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, 4000);
+    document.getElementById('btnNext').classList.add('show');
+  }, 800);
 }
 
 // ═══════════════════════════════════════
@@ -2112,6 +2141,13 @@ function checkOpcionRepaso(idx, reto, btn) {
   if (correct) {
     btn.classList.add('correct');
     showFeedback(true, reto.feedback_ok);
+    if (state.voiceActive) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      var refuerzosR = ['¡Correcto! Lo has conseguido.','¡Muy bien! Esta vez sí.','¡Exacto! ¡Lo tenías!','¡Genial! ¡Campeón!','¡Perfecto! Así se hace.'];
+      var refR = refuerzosR[Math.floor(Math.random() * refuerzosR.length)];
+      speakQueue([refR], 0.88, function() { iniciarRecognition(); });
+    }
     completeRepasoReto(reto);
   } else {
     btn.classList.add('wrong');
@@ -2122,9 +2158,14 @@ function checkOpcionRepaso(idx, reto, btn) {
 
 function manejarErrorRepasoOpcion(reto, allBtns) {
   if (state.intentoRepaso === 1) {
-    // Primer fallo en repaso: mostrar pista grande y dar otro intento
     showFeedback(false, reto.feedback_err);
-    mostrarHint(reto.pista2 || reto.feedback_err);
+    var p2r = reto.pista2 || reto.feedback_err;
+    mostrarHint(p2r);
+    if (state.voiceActive) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      speakQueue([p2r], 0.88, function() { iniciarRecognition(); });
+    }
     setTimeout(function() {
       allBtns.forEach(function(b) {
         b.disabled = false;
@@ -2133,22 +2174,34 @@ function manejarErrorRepasoOpcion(reto, allBtns) {
       document.getElementById('feedbackBox').classList.remove('show', 'ok', 'err');
     }, 4000);
   } else {
-    // Segundo fallo en repaso: mostrar respuesta correcta y cerrar
     allBtns[reto.correcta].classList.add('correct');
     showFeedback(false, reto.feedback_err);
-    mostrarHint('La respuesta correcta era: ' + reto.opciones[reto.correcta] + '. ¡La proxima vez seguro que la tienes!');
-    setTimeout(function() {
-      finalizarRepasoReto();
-    }, 4500);
+    var msgFin = 'La respuesta correcta era: ' + reto.opciones[reto.correcta] + '. ¡La próxima vez seguro que la tienes!';
+    mostrarHint(msgFin);
+    if (state.voiceActive) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      speakQueue([msgFin, 'Di siguiente para continuar.'], 0.88, function() {
+        finalizarRepasoReto();
+        iniciarRecognition();
+      });
+    } else {
+      setTimeout(function() { finalizarRepasoReto(); }, 4500);
+    }
   }
 }
 
 function manejarErrorRepaso(reto, inp) {
   if (state.intentoRepaso === 0) {
-    // Primer fallo en repaso: mostrar pista grande
     showFeedback(false, reto.feedback_err);
-    mostrarHint(reto.pista2 || reto.feedback_err);
+    var p2ri = reto.pista2 || reto.feedback_err;
+    mostrarHint(p2ri);
     state.intentoRepaso++;
+    if (state.voiceActive) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      speakQueue([p2ri], 0.88, function() { iniciarRecognition(); });
+    }
     setTimeout(function() {
       inp.className = 'text-input';
       inp.value = '';
@@ -2156,12 +2209,19 @@ function manejarErrorRepaso(reto, inp) {
       inp.focus();
     }, 4000);
   } else {
-    // Segundo fallo: mostrar respuesta y cerrar
     showFeedback(false, reto.feedback_err);
-    mostrarHint('La respuesta correcta era: ' + reto.correctas[0] + '. ¡La próxima vez seguro que la tienes!');
-    setTimeout(function() {
-      finalizarRepasoReto();
-    }, 4500);
+    var msgFinI = 'La respuesta correcta era: ' + reto.correctas[0] + '. ¡La próxima vez seguro que la tienes!';
+    mostrarHint(msgFinI);
+    if (state.voiceActive) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      speakQueue([msgFinI, 'Di siguiente para continuar.'], 0.88, function() {
+        finalizarRepasoReto();
+        iniciarRecognition();
+      });
+    } else {
+      setTimeout(function() { finalizarRepasoReto(); }, 4500);
+    }
   }
 }
 
@@ -2256,16 +2316,17 @@ function mostrarNivelCuriosidad(nivel) {
   document.getElementById('curiosityBox').classList.remove('show');
   document.getElementById('nivelCuriosidad').classList.add('show');
   throwStars(8);
-  // Dar foco al botón para que click/teclado funcionen sin ratón
   setTimeout(function() {
     var btnCuriosidad = document.querySelector('.btn-nivel-curiosidad');
     if (btnCuriosidad) btnCuriosidad.focus();
   }, 300);
   if (state.voiceActive) {
     var textoPlano = datos.texto.replace(/<[^>]+>/g, '');
-    // Hablar curiosidad, luego preguntar si seguir, luego activar mic
-    speakQueue([textoPlano, '¿Qué te ha parecido? Di siguiente o pulsa el botón para continuar.'], 0.88, function() {
-      // Dar foco de nuevo al botón y arrancar escucha
+    // Chrome corta utterances largas — dividir en frases para garantizar que se lee todo
+    var frases = textoPlano.split(/(?<=[.!?])\s+/).filter(function(f) { return f.trim().length > 0; });
+    if (frases.length === 0) frases = [textoPlano];
+    var cola = frases.concat(['¿Qué te ha parecido? Di siguiente o pulsa el botón para continuar.']);
+    speakQueue(cola, 0.88, function() {
       var btnCuriosidad = document.querySelector('.btn-nivel-curiosidad');
       if (btnCuriosidad) btnCuriosidad.focus();
       iniciarRecognition();
@@ -2506,6 +2567,7 @@ var nivelMagicaVisto = { facil: false, experto: false, genio: false };
 
 // Estado del input por voz
 var voiceInputPendiente = null; // número convertido esperando confirmación
+// state._cancelPendiente — flag para el flujo de confirmación de cancel
 
 function toggleVoice() {
   state.voiceActive = !state.voiceActive;
@@ -2662,6 +2724,12 @@ function limpiarParaVoz(texto) {
     .trim();
 }
 
+// ── Dividir texto largo en frases para evitar corte de Chrome TTS ──────────
+function splitFrases(texto) {
+  var frases = texto.split(/(?<=[.!?])\s+/).filter(function(f) { return f.trim().length > 0; });
+  return frases.length > 0 ? frases : [texto];
+}
+
 // ── Lectura completa de un reto ─────────────────────────────────────────────
 function leerRetoCompleto(reto) {
   if (!state.voiceActive || !reto) return;
@@ -2673,11 +2741,10 @@ function leerRetoCompleto(reto) {
   // Pequeña pausa narrativa
   cola.push('Reto ' + (state.retoIndex + 1) + ' de 9.');
 
-  // Pregunta del reto
-  cola.push(reto.question);
+  // Pregunta del reto — dividida en frases para evitar corte de Chrome
+  splitFrases(reto.question).forEach(function(f) { cola.push(f); });
 
   if (reto.type === 'opcion') {
-    // Añadir pausa narrativa antes del bloque de opciones
     cola.push('Estas son tus opciones.');
     reto.opciones.forEach(function(op, i) {
       var etiqLabel = ['Primera opción','Segunda opción','Tercera opción','Última opción'][i] || ('Opción ' + (i+1));
@@ -2688,7 +2755,6 @@ function leerRetoCompleto(reto) {
           return ['cero','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve'][parseInt(d)] || d;
         }).join(', ') + '.';
       } else {
-        // Limpiar puntos medios y comas en opciones de texto para mejor lectura
         textoOpcion = etiqLabel + ': ' + op.replace(/·/g, ', ') + '.';
       }
       cola.push(textoOpcion);
@@ -3119,6 +3185,16 @@ function procesarComandoVoz(transcript, alternativas) {
   // (crítico: "sí" debe confirmar el número antes de interpretarse como "siguiente")
   if (voiceInputPendiente !== null) {
     if (transcript.includes('sí') || transcript === 'si' || transcript.includes('correcto') || transcript.includes('confirmo')) {
+      // Si hay cancelación pendiente de confirmar — "sí" confirma el cancel
+      if (state._cancelPendiente) {
+        state._cancelPendiente = false;
+        voiceInputPendiente = null;
+        var inp3 = document.getElementById('textInput');
+        if (inp3) { inp3.value = ''; inp3.focus(); }
+        speak('Cancelado. Dime la respuesta nuevamente cuando quieras.');
+        return;
+      }
+      // Confirmar el número
       var inp = document.getElementById('textInput');
       if (inp && document.getElementById('inputRow').style.display !== 'none') {
         inp.value = String(voiceInputPendiente);
@@ -3128,15 +3204,21 @@ function procesarComandoVoz(transcript, alternativas) {
       }
       return;
     }
+    if (transcript.includes('no') && state._cancelPendiente) {
+      // No quiere cancelar — seguir con el número anterior
+      state._cancelPendiente = false;
+      speak('De acuerdo. El número sigue siendo: ' + cifraAHablado(voiceInputPendiente) + '. Di sí para confirmar o cancela para borrar.');
+      return;
+    }
     if (transcript.includes('cancela') || transcript.includes('cancel') || transcript.includes('borrar') || transcript.includes('borra')) {
-      voiceInputPendiente = null;
-      var inp2 = document.getElementById('textInput');
-      if (inp2) { inp2.value = ''; inp2.focus(); }
-      speak('Borrado. Di el número de nuevo cuando quieras.');
+      // Pedir confirmación antes de cancelar
+      state._cancelPendiente = true;
+      speak('¿Seguro que quieres cancelar? Di sí para confirmar el cancel, o no para quedarte con el número.');
       return;
     }
     if (transcript.includes('no') || transcript.includes('repite') || transcript.includes('mal') || transcript.includes('error')) {
       voiceInputPendiente = null;
+      state._cancelPendiente = false;
       speak('De acuerdo. Escucha de nuevo la pregunta.');
       setTimeout(function() {
         var reto = state.enRepaso ? retos[state.repasoQueue[0]] : retos[state.retoIndex];
@@ -3144,8 +3226,17 @@ function procesarComandoVoz(transcript, alternativas) {
       }, 600);
       return;
     }
-    // Si hay número pendiente y dice otra cosa — recordar opciones
-    speak('Di sí para confirmar, cancela para borrar, o repite para escuchar la pregunta de nuevo.');
+    // Número nuevo mientras hay uno pendiente — preguntar si reemplaza
+    var numeroNuevo = habladoACifra(transcript);
+    if (!isNaN(numeroNuevo) && numeroNuevo > 0) {
+      voiceInputPendiente = numeroNuevo;
+      state._cancelPendiente = false;
+      var textoNuevo = cifraAHablado(numeroNuevo);
+      speak('He entendido: ' + textoNuevo + '. Di sí para confirmar, cancela para borrar, o repite para escuchar la pregunta.');
+      return;
+    }
+    // Cualquier otra cosa — recordar opciones
+    speak('Di sí para confirmar ' + cifraAHablado(voiceInputPendiente) + ', cancela para borrar, o repite para escuchar la pregunta de nuevo.');
     return;
   }
 
