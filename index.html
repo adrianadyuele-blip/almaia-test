@@ -1899,37 +1899,25 @@ function checkOpcion(idx, reto, btn) {
     completeReto(reto);
   } else {
     btn.classList.add('wrong');
-    allBtns[reto.correcta].classList.add('correct');
+    // Intento 1: NO mostrar la correcta en verde — solo marcar el error
     state.intentoActual++;
 
     if (state.intentoActual === 1) {
-      // Intento 1: pista pequeña → re-habilitar botones DESPUÉS de que Alma hable
+      // Intento 1: mostrar pista, re-habilitar botones tras 3.5s
+      // mostrarHint ya habla la pista — no llamar speak adicional
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
       mostrarHint(reto.pista1 || reto.feedback_err);
-      if (state.voiceActive) {
-        window.speechSynthesis.cancel();
-        // Hablar feedback, y solo cuando termine re-habilitar botones
-        speakQueue([limpiarParaVoz(reto.feedback_err)], 0.55, function() {
-          allBtns.forEach(function(b) {
-            b.disabled = false;
-            b.classList.remove('wrong', 'correct');
-          });
-          iniciarRecognition();
+      setTimeout(function() {
+        allBtns.forEach(function(b) {
+          b.disabled = false;
+          b.classList.remove('wrong', 'correct');
         });
-      } else {
-        setTimeout(function() {
-          allBtns.forEach(function(b) {
-            b.disabled = false;
-            b.classList.remove('wrong', 'correct');
-          });
-        }, 4500);
-      }
+      }, 3500);
     } else {
-      // Intento 2: pista grande → avanza marcado como pendiente
+      // Intento 2: mostrar respuesta correcta + avanzar como pendiente
+      allBtns[reto.correcta].classList.add('correct');
       mostrarHint(reto.pista2 || reto.feedback_err);
-      if (state.voiceActive) {
-        window.speechSynthesis.cancel();
-        speak(limpiarParaVoz(reto.feedback_err));
-      }
       setTimeout(function() {
         marcarPendiente();
       }, 4000);
@@ -1971,17 +1959,25 @@ function checkInput() {
       setTimeout(function() { marcarPendiente(); }, 4000);
     }
   }
-  if (state.voiceActive) {
+  if (state.voiceActive && correct) {
     window.speechSynthesis.cancel();
-    speak(limpiarParaVoz(correct ? reto.feedback_ok : reto.feedback_err));
+    speak(limpiarParaVoz(reto.feedback_ok));
   }
+  // Para el caso de error, mostrarHint ya gestiona la voz — no hablar aquí
 }
 
 function mostrarHint(texto) {
   var hint = document.getElementById('almaHint');
   document.getElementById('almaHintText').textContent = texto;
   hint.classList.add('show');
-  if (state.voiceActive) setTimeout(function() { speak('Pista: ' + texto); }, 600);
+  if (state.voiceActive) {
+    // Limpiar cola y hablar pista de forma natural, sin "Pista:"
+    setTimeout(function() {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      speak(limpiarParaVoz(texto));
+    }, 400);
+  }
 }
 
 function marcarPendiente() {
@@ -2240,9 +2236,20 @@ function mostrarNivelCuriosidad(nivel) {
   document.getElementById('curiosityBox').classList.remove('show');
   document.getElementById('nivelCuriosidad').classList.add('show');
   throwStars(8);
+  // Dar foco al botón para que click/teclado funcionen sin ratón
+  setTimeout(function() {
+    var btnCuriosidad = document.querySelector('.btn-nivel-curiosidad');
+    if (btnCuriosidad) btnCuriosidad.focus();
+  }, 300);
   if (state.voiceActive) {
     var textoPlano = datos.texto.replace(/<[^>]+>/g, '');
-    speak(textoPlano);
+    // Hablar curiosidad, luego preguntar si seguir, luego activar mic
+    speakQueue([textoPlano, '¿Qué te ha parecido? Di siguiente o pulsa el botón para continuar.'], 0.88, function() {
+      // Dar foco de nuevo al botón y arrancar escucha
+      var btnCuriosidad = document.querySelector('.btn-nivel-curiosidad');
+      if (btnCuriosidad) btnCuriosidad.focus();
+      iniciarRecognition();
+    });
   }
 }
 
@@ -2479,7 +2486,7 @@ function toggleVoice() {
       textoActual,
       'Recuerda: si necesitas que lo repita, di la palabra mágica: repite.',
       'También puedes decir: siguiente para avanzar, ayuda para saber qué hacer, o el número de tu respuesta.'
-    ], 0.52, function() {
+    ], 0.88, function() {
       iniciarRecognition(); // arranca escucha solo cuando Alma termina de hablar
     });
   } else {
@@ -2634,6 +2641,8 @@ function leerRetoCompleto(reto) {
   cola.push(reto.question);
 
   if (reto.type === 'opcion') {
+    // Añadir pausa narrativa antes del bloque de opciones
+    cola.push('Estas son tus opciones.');
     reto.opciones.forEach(function(op, i) {
       var etiqLabel = ['Primera opción','Segunda opción','Tercera opción','Última opción'][i] || ('Opción ' + (i+1));
       var textoOpcion;
@@ -2643,7 +2652,8 @@ function leerRetoCompleto(reto) {
           return ['cero','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve'][parseInt(d)] || d;
         }).join(', ') + '.';
       } else {
-        textoOpcion = etiqLabel + ': ' + op + '.';
+        // Limpiar puntos medios y comas en opciones de texto para mejor lectura
+        textoOpcion = etiqLabel + ': ' + op.replace(/·/g, ', ') + '.';
       }
       cola.push(textoOpcion);
     });
@@ -2666,7 +2676,7 @@ function leerRetoCompleto(reto) {
     }
   }
 
-  speakQueue(cola, 0.50, function() {
+  speakQueue(cola, reto.type === 'opcion' ? 0.82 : 0.88, function() {
     iniciarRecognition();
   });
 }
@@ -2676,7 +2686,7 @@ function repetirPantalla() {
   if (!state.voiceActive) return;
   if (state.fase === 'acceso') {
     var textoAlma = limpiarParaVoz(document.getElementById('almaText').textContent);
-    speakQueue([textoAlma, 'Di empieza para comenzar, u órbita o galaxia para saltar de nivel. Di ayuda para más opciones.'], 0.52, function() {
+    speakQueue([textoAlma, 'Di empieza para comenzar, u órbita o galaxia para saltar de nivel. Di ayuda para más opciones.'], 0.88, function() {
       iniciarRecognition();
     });
     return;
@@ -2686,7 +2696,7 @@ function repetirPantalla() {
     if (reto) { leerRetoCompleto(reto); return; }
   }
   // Fallback
-  speakQueue([limpiarParaVoz(document.getElementById('almaText').textContent)], 0.52, function() {
+  speakQueue([limpiarParaVoz(document.getElementById('almaText').textContent)], 0.88, function() {
     iniciarRecognition();
   });
 }
@@ -2995,7 +3005,7 @@ function procesarComandoVoz(transcript, alternativas) {
   if (state.fase === 'acceso') {
     if (transcript.includes('repite') || transcript.includes('repetir') || transcript.includes('repita')) {
       var textoAlma = limpiarParaVoz(document.getElementById('almaText').textContent);
-      speakQueue([textoAlma, '¿Quieres empezar desde el principio? Di: empieza. O di: ayuda para más opciones.'], 0.52, function() {
+      speakQueue([textoAlma, '¿Quieres empezar desde el principio? Di: empieza. O di: ayuda para más opciones.'], 0.88, function() {
         iniciarRecognition();
       });
       return;
@@ -3068,8 +3078,16 @@ function procesarComandoVoz(transcript, alternativas) {
     return;
   }
 
-  // ── 3. SIGUIENTE / CONTINUAR ────────────────────────────────────────────
-  if (transcript.includes('siguiente') || transcript.includes('continuar') || transcript.includes('continúa')) {
+  // ── 3. SIGUIENTE / CONTINUAR / SÍ ──────────────────────────────────────
+  if (transcript.includes('siguiente') || transcript.includes('continuar') || transcript.includes('continúa') ||
+      transcript === 'sí' || transcript === 'si' || transcript === 'vale' || transcript === 'venga') {
+    // Si estamos en la pantalla de curiosidad de nivel, avanzar
+    if (nivelCuriosidadPendiente !== null) {
+      window.speechSynthesis.cancel();
+      state.voiceQueue = [];
+      continuarDesdeNivelCuriosidad();
+      return;
+    }
     var btnNext = document.getElementById('btnNext');
     if (btnNext && btnNext.classList.contains('show')) {
       speak('Muy bien, seguimos.');
