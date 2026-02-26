@@ -1082,6 +1082,103 @@
   </div>
 </div>
 
+<!-- MODAL: CONFIGURACIÓN DE VOZ ELEVENLABS -->
+<div class="modal-overlay" id="modalVozConfig">
+  <div class="modal-box" style="max-width: 440px;">
+    <button class="modal-close" onclick="closeModal('modalVozConfig')">✕</button>
+    <div style="font-size: 36px; margin-bottom: 8px; text-align:center;">🎙️</div>
+    <div class="modal-title" style="text-align:center;">Voz de Alma — Configuración</div>
+    <div class="modal-body">
+      <p style="color:var(--teal); font-size:13px;">Elige el motor de voz. Solo puede estar activo uno a la vez.</p>
+
+      <!-- ── SECCIÓN PIPER (voz local) ── -->
+      <div style="border:1px solid rgba(0,201,177,0.3); border-radius:10px; padding:14px; margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--teal);letter-spacing:1px;">🎙️ VOZ LOCAL (recomendado)</div>
+            <div style="font-size:11px;color:var(--white-dim);margin-top:2px;">Sin internet, sin coste. Se descarga una vez (~40MB) y se guarda.</div>
+          </div>
+          <button id="piperToggleBtn" onclick="piperToggleActivo()" style="
+            padding:6px 16px; border-radius:20px; border:none; cursor:pointer;
+            font-size:12px; font-weight:700; letter-spacing:1px;
+            background:#333; color:#888; transition:all 0.2s; white-space:nowrap; margin-left:10px;">OFF</button>
+        </div>
+        <div id="piperStatus" style="font-size:12px;color:var(--white-dim);min-height:18px;">
+          Pulsa ON para descargar la voz la primera vez.
+        </div>
+      </div>
+
+      <!-- ── SEPARADOR ── -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+        <span style="font-size:11px;color:var(--white-dim);letter-spacing:1px;">O BIEN</span>
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>
+      </div>
+
+      <!-- ── SECCIÓN ELEVENLABS ── -->
+      <div style="border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--white-dim);letter-spacing:1px;margin-bottom:10px;">☁️ ELEVENLABS (requiere cuenta y datos)</div>
+
+      <!-- Estado de conexión -->
+      <div id="elStatusBar" style="
+        display:flex; align-items:center; gap:8px;
+        padding: 8px 12px; border-radius:8px; margin-bottom:14px;
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+        font-size:12px; color: var(--white-dim);">
+        <span id="elStatusDot" style="width:8px;height:8px;border-radius:50%;background:#666;flex-shrink:0;"></span>
+        <span id="elStatusText">Sin configurar</span>
+      </div>
+
+      <!-- API Key -->
+      <label style="font-size:12px;color:var(--white-dim);letter-spacing:1px;display:block;margin-bottom:4px;">API KEY DE ELEVENLABS</label>
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <input id="elApiKeyInput" type="password" placeholder="sk_xxxx..." style="
+          flex:1; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.2);
+          border-radius:8px; padding:8px 10px; color:var(--white); font-size:13px;
+          font-family:monospace;" />
+        <button onclick="elGuardarKey()" style="
+          padding:8px 14px; background:var(--teal); border:none; border-radius:8px;
+          color:var(--blue-deep); font-weight:700; font-size:12px; cursor:pointer;
+          letter-spacing:1px; white-space:nowrap;">VERIFICAR</button>
+      </div>
+
+      <!-- Selector de voz -->
+      <label style="font-size:12px;color:var(--white-dim);letter-spacing:1px;display:block;margin-bottom:4px;">VOZ</label>
+      <select id="elVoiceSelect" style="
+        width:100%; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.2);
+        border-radius:8px; padding:8px 10px; color:var(--white); font-size:13px;
+        margin-bottom:12px; cursor:pointer;" onchange="elCambiarVoz()">
+        <option value="">— Verificar API key primero —</option>
+      </select>
+
+      <!-- Botón probar voz -->
+      <button id="elBtnProbar" onclick="elProbarVoz()" disabled style="
+        width:100%; padding:10px; margin-bottom:10px;
+        background:rgba(155,111,255,0.15); border:1px solid var(--purple);
+        border-radius:8px; color:var(--purple); font-family:'Rajdhani',sans-serif;
+        font-size:13px; font-weight:700; letter-spacing:1px; cursor:pointer;
+        opacity:0.5; text-transform:uppercase;">
+        🔊 Probar voz seleccionada
+      </button>
+
+      <!-- Toggle activo/inactivo -->
+      <div style="display:flex;align-items:center;justify-content:space-between;
+        padding:10px 12px; background:rgba(255,255,255,0.04); border-radius:8px;
+        border:1px solid rgba(255,255,255,0.08); margin-bottom:4px;">
+        <span style="font-size:13px;color:var(--white);">Usar voz ElevenLabs</span>
+        <button id="elToggleBtn" onclick="elToggleActivo()" style="
+          padding:6px 16px; border-radius:20px; border:none; cursor:pointer;
+          font-size:12px; font-weight:700; letter-spacing:1px;
+          background:#333; color:#888; transition:all 0.2s;">OFF</button>
+      </div>
+      <p style="font-size:11px;color:var(--white-dim);margin-top:6px;margin-bottom:0;">
+        Si ElevenLabs no responde, Alma usa automáticamente la voz del sistema como respaldo.
+      </p>
+      </div><!-- /elevenlabs section -->
+    </div>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- PANEL DE DIAGNÓSTICO TEMPORAL -->
@@ -1119,6 +1216,9 @@
       </button>
       <button class="btn-icon" onclick="toggleVoice()" id="btnVoice" title="Alma Voz" aria-label="Activar o desactivar la voz de Alma" aria-pressed="false">
         🔊<span class="tooltip">Alma Voz</span>
+      </button>
+      <button class="btn-icon" onclick="openModal('modalVozConfig')" title="Configurar voz" aria-label="Configurar voz de Alma con ElevenLabs" id="btnVozConfig">
+        🎙️<span class="tooltip">Voz Alma</span>
       </button>
       <button class="btn-pause-header" id="btnPause" onclick="togglePausa()" aria-label="Pausar o reanudar la actividad">⏸ Pausa</button>
       <button class="btn-restart-header" onclick="askRestart()" aria-label="Reiniciar el artefacto desde el principio">↺ Reiniciar</button>
@@ -2698,8 +2798,11 @@ function togglePausa() {
     btn.textContent = '▶ Continuar';
     btn.classList.add('paused');
     btn.setAttribute('aria-label', 'Reanudar la actividad');
-    // Detener TTS y mic sin perder el estado de voz
+    // Detener TTS nativo y mic
     if (window.speechSynthesis) window.speechSynthesis.pause();
+    // Detener AudioContext de ElevenLabs y Piper si están activos
+    if (_el.audioCtx && _el.audioCtx.state === 'running') _el.audioCtx.suspend();
+    if (_piper.audioCtx && _piper.audioCtx.state === 'running') _piper.audioCtx.suspend();
     if (state.recognition) { try { state.recognition.abort(); } catch(e) {} state.recognition = null; }
     dbg('⏸ Juego pausado');
   } else {
@@ -2708,8 +2811,11 @@ function togglePausa() {
     btn.textContent = '⏸ Pausa';
     btn.classList.remove('paused');
     btn.setAttribute('aria-label', 'Pausar la actividad');
-    // Reanudar TTS si había algo en curso
+    // Reanudar TTS nativo
     if (window.speechSynthesis) window.speechSynthesis.resume();
+    // Reanudar AudioContext de ElevenLabs y Piper
+    if (_el.audioCtx && _el.audioCtx.state === 'suspended') _el.audioCtx.resume();
+    if (_piper.audioCtx && _piper.audioCtx.state === 'suspended') _piper.audioCtx.resume();
     // Si la voz estaba activa, repetir la pantalla actual para reorientar al niño/a
     if (state.voiceActive && state.fase !== 'acceso' && state.fase !== 'victoria') {
       setTimeout(function() { repetirPantalla(); }, 400);
@@ -2884,6 +2990,500 @@ function activarVozGrande() {
   if (!state.voiceActive) toggleVoice();
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// MOTOR DE VOZ ELEVENLABS — integración blindada con fallback automático
+// El sistema de cola speakQueue/_speakNext NO cambia en absoluto.
+// Solo _speakNext decide si llama a _elSpeak o al SpeechSynthesis nativo.
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _el = {
+  apiKey: '',           // API key de ElevenLabs
+  voiceId: '',          // voice_id seleccionado
+  voiceName: '',        // nombre legible para UI
+  activo: false,        // true = usar EL, false = usar nativo
+  modelId: 'eleven_multilingual_v2',
+  audioCtx: null,       // AudioContext compartido
+  // Caché de audio para no re-pedir el mismo texto
+  cache: {}
+};
+
+// Voces curadas en español — las mejores disponibles en ElevenLabs a Feb 2026
+var _elVoicesCuradas = [
+  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam (masculina, profunda)' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella (femenina, cálida)' },
+  { id: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli (femenina, joven)' },
+  { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh (masculina, narrador)' },
+  { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold (masculina, expresiva)' },
+  { id: 'pqHfZKP75CvOlQylNhV4', name: 'Bill (masculina, cálida)' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian (masculina, natural)' },
+  { id: 'iP95p4xoKVk53GoZ742B', name: 'Chris (masculina, casual)' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel (masculina, profunda)' },
+  { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric (masculina, amigable)' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George (masculina, cálida)' },
+  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica (femenina, expresiva)' },
+  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura (femenina, natural)' },
+  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam (masculina, articulada)' },
+  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily (femenina, suave)' },
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte (femenina, elegante)' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice (femenina, confiada)' },
+  { id: 'Sarah', name: 'Sarah (femenina, positiva) [premade]' },
+  { id: 'Rachel', name: 'Rachel (femenina, calmada) [premade]' },
+  { id: 'Domi', name: 'Domi (femenina, fuerte) [premade]' }
+];
+
+function _elGetAudioCtx() {
+  if (!_el.audioCtx || _el.audioCtx.state === 'closed') {
+    _el.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_el.audioCtx.state === 'suspended') _el.audioCtx.resume();
+  return _el.audioCtx;
+}
+
+// ── Llamada a ElevenLabs TTS — devuelve Promise<ArrayBuffer> ──────────────
+async function _elFetch(text) {
+  var cacheKey = _el.voiceId + '|' + text;
+  if (_el.cache[cacheKey]) return _el.cache[cacheKey];
+
+  var resp = await fetch(
+    'https://api.elevenlabs.io/v1/text-to-speech/' + _el.voiceId + '/stream', {
+    method: 'POST',
+    headers: {
+      'xi-api-key': _el.apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'audio/mpeg'
+    },
+    body: JSON.stringify({
+      text: text,
+      model_id: _el.modelId,
+      voice_settings: { stability: 0.55, similarity_boost: 0.80, style: 0.20, use_speaker_boost: true }
+    })
+  });
+
+  if (!resp.ok) throw new Error('EL HTTP ' + resp.status);
+  var buf = await resp.arrayBuffer();
+  // Cachear solo textos cortos para no llenar memoria
+  if (text.length < 200) _el.cache[cacheKey] = buf;
+  return buf;
+}
+
+// ── Reproducir ArrayBuffer de audio con AudioContext ──────────────────────
+function _elPlayBuffer(arrayBuffer, onEnd, onError) {
+  var ctx = _elGetAudioCtx();
+  ctx.decodeAudioData(arrayBuffer.slice(0), function(decoded) {
+    var source = ctx.createBufferSource();
+    source.buffer = decoded;
+    source.connect(ctx.destination);
+    source.onended = onEnd;
+    source.start(0);
+  }, function(e) {
+    dbg('EL decodeAudioData error: ' + e);
+    if (onError) onError(e);
+  });
+}
+
+// ── Hablar un texto con ElevenLabs — llama onEnd cuando termina ──────────
+// Si falla por cualquier razón → fallback a SpeechSynthesis nativo
+function _elSpeak(text, rate, pitch, onEnd, onFallback) {
+  if (!_el.activo || !_el.apiKey || !_el.voiceId) { onFallback(); return; }
+  dbg('EL → "' + text.substring(0, 40) + '..."');
+  _elFetch(text).then(function(buf) {
+    _elPlayBuffer(buf, onEnd, function() { onFallback(); });
+  }).catch(function(e) {
+    dbg('EL fetch error: ' + e.message + ' → fallback nativo');
+    onFallback();
+  });
+}
+
+// ── UI: verificar API key y cargar voces ─────────────────────────────────
+function elGuardarKey() {
+  var key = document.getElementById('elApiKeyInput').value.trim();
+  if (!key) { elSetStatus('error', 'Introduce una API key'); return; }
+  elSetStatus('loading', 'Verificando...');
+  fetch('https://api.elevenlabs.io/v1/voices', {
+    headers: { 'xi-api-key': key }
+  }).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(data) {
+    _el.apiKey = key;
+    elSetStatus('ok', 'Conectado ✓ — ' + (data.voices || []).length + ' voces');
+    elPopularVoces(data.voices || []);
+  }).catch(function(e) {
+    elSetStatus('error', 'API key inválida o sin conexión');
+    dbg('EL verificación fallida: ' + e.message);
+  });
+}
+
+function elPopularVoces(apiVoices) {
+  var select = document.getElementById('elVoiceSelect');
+  select.innerHTML = '<option value="">— Elige una voz —</option>';
+
+  // Primero las voces de la cuenta del usuario (si las hay)
+  var userVoices = apiVoices.filter(function(v) { return !v.category || v.category === 'cloned' || v.category === 'generated'; });
+  if (userVoices.length > 0) {
+    var grpUser = document.createElement('optgroup');
+    grpUser.label = '— Mis voces —';
+    userVoices.forEach(function(v) {
+      var opt = document.createElement('option'); opt.value = v.voice_id; opt.textContent = v.name;
+      grpUser.appendChild(opt);
+    });
+    select.appendChild(grpUser);
+  }
+
+  // Voces curadas recomendadas (de la biblioteca de ElevenLabs)
+  var grpCuradas = document.createElement('optgroup');
+  grpCuradas.label = '— Biblioteca recomendada —';
+  _elVoicesCuradas.forEach(function(v) {
+    var opt = document.createElement('option'); opt.value = v.id; opt.textContent = v.name;
+    grpCuradas.appendChild(opt);
+  });
+  select.appendChild(grpCuradas);
+
+  document.getElementById('elBtnProbar').disabled = false;
+  document.getElementById('elBtnProbar').style.opacity = '1';
+}
+
+function elCambiarVoz() {
+  var select = document.getElementById('elVoiceSelect');
+  _el.voiceId = select.value;
+  _el.voiceName = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : '';
+  if (_el.voiceId) {
+    document.getElementById('elBtnProbar').disabled = false;
+    document.getElementById('elBtnProbar').style.opacity = '1';
+  }
+  // Limpiar caché al cambiar de voz
+  _el.cache = {};
+  dbg('EL voz cambiada: ' + _el.voiceName + ' (' + _el.voiceId + ')');
+}
+
+function elProbarVoz() {
+  if (!_el.apiKey || !_el.voiceId) { elSetStatus('error', 'Elige una voz primero'); return; }
+  var fraseTest = 'Hola, soy Alma. ¿Estás lista o listo para empezar la misión matemática?';
+  elSetStatus('loading', 'Cargando audio...');
+  _elFetch(fraseTest).then(function(buf) {
+    elSetStatus('ok', 'Reproduciendo prueba...');
+    _elPlayBuffer(buf, function() { elSetStatus('ok', 'Voz lista ✓ — ' + _el.voiceName); }, function() { elSetStatus('error', 'Error de reproducción'); });
+  }).catch(function(e) { elSetStatus('error', 'Error: ' + e.message); });
+}
+
+function elToggleActivo() {
+  if (!_el.apiKey || !_el.voiceId) { elSetStatus('error', 'Configura la API key y una voz primero'); return; }
+  _el.activo = !_el.activo;
+  var btn = document.getElementById('elToggleBtn');
+  if (_el.activo) {
+    btn.textContent = 'ON';
+    btn.style.background = 'var(--teal)';
+    btn.style.color = 'var(--blue-deep)';
+    elSetStatus('ok', 'ElevenLabs activo — ' + _el.voiceName);
+    dbg('EL activado: ' + _el.voiceName);
+    // Desactivar Piper si estaba activo — solo un motor a la vez
+    if (_piper.activo) {
+      _piper.activo = false;
+      _piperActualizarToggle();
+      dbg('Piper desactivado automáticamente — EL tiene prioridad');
+    }
+  } else {
+    btn.textContent = 'OFF';
+    btn.style.background = '#333';
+    btn.style.color = '#888';
+    elSetStatus('ok', 'Usando voz del sistema');
+    dbg('EL desactivado — usando voz nativa');
+  }
+  var btnConfig = document.getElementById('btnVozConfig');
+  if (btnConfig) btnConfig.style.color = (_el.activo || _piper.activo) ? 'var(--teal)' : '';
+}
+
+function elSetStatus(tipo, msg) {
+  var dot = document.getElementById('elStatusDot');
+  var txt = document.getElementById('elStatusText');
+  if (!dot || !txt) return;
+  txt.textContent = msg;
+  var colores = { ok: '#00c9b1', error: '#ff5c5c', loading: '#ffb300' };
+  dot.style.background = colores[tipo] || '#666';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MOTOR PIPER TTS — voz local, sin coste por uso, caché en navegador
+// Usa @huggingface/transformers v3 en un Web Worker para no bloquear el juego.
+// Integración: paralela a _el. Solo _speakNext decide qué motor usar.
+// speakQueue y todos los callers NO saben qué motor se usa — no tocarlos.
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _piper = {
+  activo: false,          // true = usar Piper, false = usar nativo
+  listo: false,           // true = modelo cargado y listo
+  cargando: false,        // true = cargando modelo ahora mismo
+  worker: null,           // Web Worker
+  audioCtx: null,         // AudioContext compartido
+  cache: {},              // caché texto→Float32Array
+  pendingResolve: null,   // resolve de la Promise en curso
+  pendingReject: null,    // reject de la Promise en curso
+  // URL del modelo — cambiar a URL propia cuando esté en Hotmart/Lemon
+  modelUrl: 'onnx-community/mms-tts-spa'
+};
+
+// ── Código del Worker como string — se instancia como Blob URL ────────────
+var _piperWorkerCode = `
+importScripts('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.2/dist/transformers.min.js');
+
+let pipeline = null;
+let pipelineReady = false;
+
+self.onmessage = async function(e) {
+  const { type, text, modelUrl } = e.data;
+
+  if (type === 'load') {
+    try {
+      self.postMessage({ type: 'loading' });
+      const { pipeline: createPipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.2/dist/transformers.min.js');
+      pipeline = await createPipeline('text-to-speech', modelUrl || 'onnx-community/mms-tts-spa', {
+        device: 'wasm',
+        dtype: 'fp32'
+      });
+      pipelineReady = true;
+      self.postMessage({ type: 'ready' });
+    } catch(err) {
+      self.postMessage({ type: 'error', message: err.message });
+    }
+  }
+
+  if (type === 'speak') {
+    if (!pipelineReady) {
+      self.postMessage({ type: 'error', message: 'Modelo no cargado' });
+      return;
+    }
+    try {
+      const output = await pipeline(text);
+      self.postMessage({ type: 'audio', audio: output.audio, sampling_rate: output.sampling_rate }, [output.audio.buffer]);
+    } catch(err) {
+      self.postMessage({ type: 'error', message: err.message });
+    }
+  }
+};
+`;
+
+// Versión con importScripts clásico (más compatible con Workers)
+var _piperWorkerCode2 = `
+let synth = null;
+let ready = false;
+
+self.onmessage = async function(e) {
+  const { type, text, modelUrl } = e.data;
+
+  if (type === 'load') {
+    try {
+      self.postMessage({ type: 'status', msg: 'Cargando biblioteca...' });
+      // Importar transformers.js como módulo ES dentro del worker
+      const mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.2/dist/transformers.min.js');
+      self.postMessage({ type: 'status', msg: 'Cargando modelo de voz...' });
+      synth = await mod.pipeline('text-to-speech', modelUrl || 'onnx-community/mms-tts-spa', {
+        device: 'wasm',
+        dtype: 'fp32',
+        progress_callback: (p) => {
+          if (p.status === 'downloading') {
+            const pct = p.total ? Math.round((p.loaded/p.total)*100) : 0;
+            self.postMessage({ type: 'progress', pct: pct, file: p.file || '' });
+          }
+        }
+      });
+      ready = true;
+      self.postMessage({ type: 'ready' });
+    } catch(err) {
+      self.postMessage({ type: 'error', message: err.message });
+    }
+  }
+
+  if (type === 'speak') {
+    if (!ready) { self.postMessage({ type: 'error', message: 'no_ready' }); return; }
+    try {
+      const result = await synth(text);
+      // result.audio es Float32Array, result.sampling_rate es número
+      const audioData = result.audio instanceof Float32Array ? result.audio : new Float32Array(result.audio);
+      self.postMessage({ type: 'audio', audio: audioData, sampling_rate: result.sampling_rate }, [audioData.buffer]);
+    } catch(err) {
+      self.postMessage({ type: 'error', message: err.message });
+    }
+  }
+};
+`;
+
+function _piperGetAudioCtx() {
+  if (!_piper.audioCtx || _piper.audioCtx.state === 'closed') {
+    _piper.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_piper.audioCtx.state === 'suspended') _piper.audioCtx.resume();
+  return _piper.audioCtx;
+}
+
+function _piperIniciarWorker() {
+  if (_piper.worker) return; // ya existe
+  var blob = new Blob([_piperWorkerCode2], { type: 'application/javascript' });
+  var url = URL.createObjectURL(blob);
+  _piper.worker = new Worker(url);
+  URL.revokeObjectURL(url); // liberar URL, worker ya la tiene
+
+  _piper.worker.onmessage = function(e) {
+    var d = e.data;
+    if (d.type === 'status') {
+      dbg('Piper: ' + d.msg);
+      _piperActualizarUI(d.msg);
+    } else if (d.type === 'progress') {
+      var msg = 'Descargando voz... ' + d.pct + '%';
+      dbg('Piper progress: ' + d.pct + '% — ' + d.file);
+      _piperActualizarUI(msg);
+    } else if (d.type === 'ready') {
+      _piper.listo = true;
+      _piper.cargando = false;
+      dbg('Piper listo ✓');
+      _piperActualizarUI('Voz local lista ✓');
+      _piperActualizarToggle();
+    } else if (d.type === 'audio') {
+      // Audio recibido — reproducir
+      _piperReproducir(d.audio, d.sampling_rate);
+    } else if (d.type === 'error') {
+      dbg('Piper error: ' + d.message);
+      _piper.cargando = false;
+      _piperActualizarUI('Error: ' + d.message);
+      // Llamar al onFallback si hay uno pendiente
+      if (_piper._onFallback) {
+        var fb = _piper._onFallback;
+        _piper._onFallback = null;
+        _piper._onEnd = null;
+        fb();
+      }
+    }
+  };
+
+  _piper.worker.onerror = function(e) {
+    dbg('Piper worker error: ' + e.message);
+    _piper.listo = false;
+    _piper.cargando = false;
+    _piperActualizarUI('Error del motor de voz');
+    if (_piper._onFallback) {
+      var fb = _piper._onFallback;
+      _piper._onFallback = null;
+      _piper._onEnd = null;
+      fb();
+    }
+  };
+}
+
+function _piperCargarModelo() {
+  if (_piper.listo || _piper.cargando) return;
+  _piper.cargando = true;
+  _piperIniciarWorker();
+  dbg('Piper: iniciando carga de modelo...');
+  _piperActualizarUI('Iniciando descarga de voz local...');
+  _piper.worker.postMessage({ type: 'load', modelUrl: _piper.modelUrl });
+}
+
+function _piperReproducir(float32Audio, samplingRate) {
+  var ctx = _piperGetAudioCtx();
+  var buffer = ctx.createBuffer(1, float32Audio.length, samplingRate);
+  buffer.copyToChannel(float32Audio, 0);
+  var source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+  source.onended = function() {
+    dbg('Piper audio onended ✓');
+    if (_piper._onEnd) {
+      var cb = _piper._onEnd;
+      _piper._onEnd = null;
+      _piper._onFallback = null;
+      cb();
+    }
+  };
+  source.start(0);
+  dbg('Piper reproduciendo audio (' + float32Audio.length + ' samples @ ' + samplingRate + 'Hz)');
+}
+
+// ── Hablar con Piper — onEnd cuando termina, onFallback si falla ──────────
+function _piperSpeak(text, rate, pitch, onEnd, onFallback) {
+  if (!_piper.activo || !_piper.listo) { onFallback(); return; }
+
+  // Consultar caché primero
+  if (_piper.cache[text]) {
+    dbg('Piper caché hit: "' + text.substring(0,30) + '"');
+    _piper._onEnd = onEnd;
+    _piper._onFallback = onFallback;
+    _piperReproducir(_piper.cache[text].audio, _piper.cache[text].sr);
+    return;
+  }
+
+  _piper._onEnd = function() {
+    onEnd();
+  };
+  _piper._onFallback = onFallback;
+
+  // Interceptar el mensaje de audio para cachear antes de reproducir
+  var originalHandler = _piper.worker.onmessage;
+  _piper.worker.onmessage = function(e) {
+    if (e.data.type === 'audio' && text.length < 200) {
+      // Guardar copia en caché antes de transferir
+      _piper.cache[text] = { audio: e.data.audio.slice(0), sr: e.data.sampling_rate };
+    }
+    originalHandler(e);
+  };
+
+  dbg('Piper → "' + text.substring(0,40) + '..."');
+  _piper.worker.postMessage({ type: 'speak', text: text });
+}
+
+// ── UI del configurador Piper ─────────────────────────────────────────────
+function _piperActualizarUI(msg) {
+  var el = document.getElementById('piperStatus');
+  if (el) el.textContent = msg;
+}
+
+function _piperActualizarToggle() {
+  var btn = document.getElementById('piperToggleBtn');
+  if (!btn) return;
+  if (_piper.activo && _piper.listo) {
+    btn.textContent = 'ON';
+    btn.style.background = 'var(--teal)';
+    btn.style.color = 'var(--blue-deep)';
+  } else if (_piper.cargando) {
+    btn.textContent = 'CARGANDO...';
+    btn.style.background = 'var(--gold-dim)';
+    btn.style.color = 'var(--blue-deep)';
+  } else {
+    btn.textContent = 'OFF';
+    btn.style.background = '#333';
+    btn.style.color = '#888';
+  }
+}
+
+function piperToggleActivo() {
+  if (_piper.activo) {
+    // Desactivar
+    _piper.activo = false;
+    _piperActualizarToggle();
+    var btnConfig = document.getElementById('btnVozConfig');
+    if (btnConfig) btnConfig.innerHTML = '🎙️<span class="tooltip">Voz Alma</span>';
+    dbg('Piper desactivado — usando voz nativa');
+    _piperActualizarUI('Desactivado — usando voz del sistema');
+  } else {
+    // Activar — cargar modelo si no está listo
+    _piper.activo = true;
+    if (!_piper.listo) {
+      _piperCargarModelo();
+    } else {
+      _piperActualizarUI('Voz local activa ✓');
+    }
+    _piperActualizarToggle();
+    var btnConfig2 = document.getElementById('btnVozConfig');
+    if (btnConfig2) btnConfig2.style.color = 'var(--teal)';
+    dbg('Piper activado');
+  }
+  // Desactivar EL si estaba activo — solo un motor a la vez
+  if (_el.activo && _piper.activo) {
+    _el.activo = false;
+    var elBtn = document.getElementById('elToggleBtn');
+    if (elBtn) { elBtn.textContent = 'OFF'; elBtn.style.background = '#333'; elBtn.style.color = '#888'; }
+    dbg('EL desactivado automáticamente — Piper tiene prioridad');
+  }
+}
+
 function getSoftVoice() {
   var voices = window.speechSynthesis.getVoices();
   var preferred = ['Mónica', 'Monica'];
@@ -2926,18 +3526,45 @@ function _speakNext(rate, onComplete, pitch) {
 
   if (!state.voiceActive || state.voiceQueue.length === 0) {
     state._speakingLock = false;
-    dbg('_speakNext: cola vacía → llamando iniciarRecognition');
+    dbg('_speakNext: cola vacía → llamando onComplete');
     setTimeout(function() {
-      if (onComplete) {
-        onComplete();
-      } else {
-        if (state.voiceActive) iniciarRecognition();
-      }
+      if (onComplete) { onComplete(); } else { if (state.voiceActive) iniciarRecognition(); }
     }, 600);
     return;
   }
+
   var text = state.voiceQueue.shift();
-  dbg('_speakNext: hablando "' + text.substring(0,40) + '..."');
+  dbg('_speakNext: "' + text.substring(0,40) + '..."');
+
+  // ── Función de avance: se llama igual desde EL que desde nativo ──────────
+  function _advance() {
+    state._speakingLock = false;
+    _speakNext(rate, onComplete, pitch);
+  }
+
+  // ── Intentar Piper TTS local primero (si está activo y listo) ───────────
+  if (_piper.activo && _piper.listo) {
+    _piperSpeak(text, rate, pitch, _advance, function() {
+      dbg('Piper falló → fallback nativo');
+      _speakNativo(text, rate, pitch, _advance);
+    });
+    return;
+  }
+
+  // ── Intentar ElevenLabs (si está activo) ────────────────────────────────
+  if (_el.activo && _el.apiKey && _el.voiceId) {
+    _elSpeak(text, rate, pitch, _advance, function() {
+      // Fallback: reproducir este texto con voz nativa y seguir con la cola
+      _speakNativo(text, rate, pitch, _advance);
+    });
+    return;
+  }
+
+  // ── Voz nativa directa ───────────────────────────────────────────────────
+  _speakNativo(text, rate, pitch, _advance);
+}
+
+function _speakNativo(text, rate, pitch, onEnd) {
   var utt = new SpeechSynthesisUtterance(text);
   utt.lang = 'es-ES';
   utt.rate = rate || 0.58;
@@ -2953,22 +3580,19 @@ function _speakNext(rate, onComplete, pitch) {
   }, 10000);
 
   utt.onend = function() {
-    dbg('utt.onend disparado ✓');
+    dbg('nativo.onend ✓');
     clearInterval(pingInterval);
-    state._speakingLock = false;
-    _speakNext(rate, onComplete, pitch);
+    onEnd();
   };
   utt.onerror = function(e) {
-    dbg('utt.onerror: ' + (e.error || 'desconocido'));
+    dbg('nativo.onerror: ' + (e.error || '?'));
     clearInterval(pingInterval);
-    state._speakingLock = false;
-    _speakNext(rate, onComplete, pitch);
+    onEnd();
   };
 
   if (!voz && window.speechSynthesis.getVoices().length === 0) {
     window.speechSynthesis.onvoiceschanged = function() {
-      var v = getSoftVoice();
-      if (v) utt.voice = v;
+      var v = getSoftVoice(); if (v) utt.voice = v;
       window.speechSynthesis.speak(utt);
       window.speechSynthesis.onvoiceschanged = null;
     };
